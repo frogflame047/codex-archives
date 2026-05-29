@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ROBCO CODEX — UNIFIED ARCHIVE SYSTEM</title>
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database-compat.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+:root{--tc:#1ae23b;--bg:#080a08;--tc-dim:rgba(26,226,59,0.45);--tc-bg:rgba(26,226,59,0.08);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body,html{background:var(--bg);color:var(--tc);font-family:'VT323','Fixedsys',monospace;height:100%;overflow:hidden;text-transform:uppercase;user-select:none;font-size:16px;}
+a{color:var(--tc);}
+/* CRT */
+body::before{content:" ";display:block;position:fixed;inset:0;background:radial-gradient(circle,rgba(0,0,0,0) 50%,rgba(0,0,0,0.65) 100%);z-index:9000;pointer-events:none;}
+body::after{content:" ";display:block;position:fixed;inset:0;background:linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,0.4) 50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.03),rgba(0,0,255,0.06));z-index:8999;background-size:100% 3px,3px 100%;pointer-events:none;animation:scanScroll 15s linear infinite;}
+@keyframes scanScroll{0%{background-position:0 0;}100%{background-position:0 100vh;}}
+#master{width:100%;height:100%;position:relative;z-index:3;animation:jitter 7s infinite;}
+@keyframes jitter{0%,10%{transform:translate(0,0);}10.5%{transform:translate(-0.5px,0.5px);}11%{transform:translate(0.5px,-0.5px);}11.5%{transform:translate(0,0);}100%{transform:translate(0,0);}}
+/* Scrollbars */
+.cs::-webkit-scrollbar{width:10px;}
+.cs::-webkit-scrollbar-track{background:var(--bg);border-left:1px solid var(--tc);}
+.cs::-webkit-scrollbar-thumb{background:var(--tc);}
+/* Shared input / button */
+input,textarea,select{background:transparent;border:none;border-bottom:1px solid var(--tc);color:var(--tc);font-family:'VT323',monospace;font-size:1.2rem;text-transform:uppercase;outline:none;width:100%;padding:4px 0;}
+textarea{border:1px solid var(--tc);padding:6px;resize:vertical;min-height:80px;}
+select option{background:var(--bg);color:var(--tc);}
+.btn{background:var(--tc);color:var(--bg);border:none;font-family:'VT323',monospace;font-size:1.2rem;text-transform:uppercase;cursor:pointer;padding:4px 14px;}
+.btn:hover{background:transparent;color:var(--tc);border:1px solid var(--tc);}
+.btn-ghost{background:transparent;border:1px solid var(--tc);color:var(--tc);font-family:'VT323',monospace;font-size:1.1rem;text-transform:uppercase;cursor:pointer;padding:3px 10px;}
+.btn-ghost:hover{background:var(--tc);color:var(--bg);}
+.btn-red{background:#dc143c;color:#fff;border:none;font-family:'VT323',monospace;font-size:1.1rem;text-transform:uppercase;cursor:pointer;padding:3px 10px;}
+.label{font-size:0.9rem;color:var(--tc-dim);margin-bottom:2px;}
+.field{margin-bottom:14px;}
+hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
+/* ===== SCREENS ===== */
+.screen{display:none;position:absolute;inset:0;z-index:10;}
+.screen.active{display:flex;}
+/* AUTH */
+#s-auth{justify-content:center;align-items:center;flex-direction:column;font-size:1.3rem;text-shadow:0 0 5px var(--tc);}
+.auth-box{border:2px solid var(--tc);padding:2rem;width:420px;background:rgba(0,0,0,0.85);}
+.auth-box h2{text-align:center;margin-bottom:1.5rem;letter-spacing:3px;}
+.auth-tabs{display:flex;gap:0;margin-bottom:1.5rem;}
+.auth-tab{flex:1;text-align:center;padding:4px;cursor:pointer;border:1px solid var(--tc);font-size:1rem;}
+.auth-tab.active{background:var(--tc);color:var(--bg);}
+/* DASHBOARD */
+#s-dash{flex-direction:column;overflow:hidden;}
+.topbar{display:flex;align-items:center;gap:12px;padding:8px 16px;border-bottom:1px solid var(--tc);font-size:1rem;flex-shrink:0;text-shadow:0 0 4px var(--tc);}
+.topbar-title{font-size:1.4rem;letter-spacing:3px;margin-right:auto;}
+.dash-body{display:flex;flex:1;overflow:hidden;}
+/* Sidebar */
+.sidebar{width:260px;border-right:1px solid var(--tc);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;}
+.sidebar-hdr{padding:8px 12px;border-bottom:1px solid var(--tc);font-size:1rem;display:flex;align-items:center;gap:8px;}
+.sidebar-hdr span{margin-right:auto;}
+.doc-list{flex:1;overflow-y:auto;padding:4px 0;}
+.doc-item{padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--tc-dim);font-size:1rem;display:flex;align-items:center;gap:6px;}
+.doc-item:hover{background:var(--tc-bg);}
+.doc-item.selected{background:var(--tc-bg);border-left:3px solid var(--tc);}
+.doc-item .lock-icon{font-size:0.85rem;opacity:0.7;}
+.doc-item .doc-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.doc-item .doc-owner{font-size:0.75rem;color:var(--tc-dim);}
+/* Main content area */
+.main-area{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+/* DOC VIEW */
+#doc-view{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.doc-toolbar{display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--tc);flex-shrink:0;flex-wrap:wrap;font-size:0.95rem;}
+.doc-toolbar span{color:var(--tc-dim);}
+.doc-content-wrap{flex:1;overflow-y:auto;padding:16px 24px;text-shadow:0 0 4px var(--tc);}
+/* RENDERED DOC */
+.rdr h1{font-size:2rem;letter-spacing:2px;margin-bottom:6px;}
+.rdr h2{font-size:1.4rem;background:var(--tc);color:var(--bg);padding:2px 10px;display:inline-block;margin:16px 0 8px;}
+.rdr p{font-size:1.1rem;line-height:1.55;margin-bottom:8px;}
+.rdr table{width:100%;border-collapse:collapse;margin:8px 0;}
+.rdr th,.rdr td{border:1px solid var(--tc);padding:5px 8px;font-size:1rem;text-align:left;}
+.rdr th{background:var(--tc-bg);}
+.rdr ul,.rdr ol{margin-left:20px;font-size:1.1rem;line-height:1.55;}
+.rdr .addendum{border:2px dashed var(--tc);padding:12px;margin:12px 0;animation:slowBlink 4s infinite;}
+.rdr .alert{color:#dc143c;text-shadow:0 0 5px #dc143c;animation:fadeBlink 2.5s ease-in-out infinite;font-weight:bold;display:block;text-align:center;margin:12px 0;font-size:1.2rem;}
+.rdr .redact-block{cursor:pointer;color:var(--tc);background:var(--tc);padding:2px 5px;display:inline-block;margin:4px 0;}
+.rdr .redact-block:hover{opacity:0.7;}
+.rdr .redact-hidden{display:none;}
+.rdr .redact-revealed{text-decoration:underline dashed var(--tc);}
+.rdr .special-grid{display:flex;gap:12px;margin:8px 0;flex-wrap:wrap;}
+.rdr .special-stat{border:1px solid var(--tc);padding:8px 12px;font-size:1.3rem;min-width:60px;text-align:center;}
+.rdr .special-stat span{display:block;font-size:1.8rem;}
+.rdr .terminal-img{max-width:100%;height:auto;border:2px solid var(--tc);margin:8px 0;opacity:0.88;display:block;}
+.rdr .img-grid{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:8px 0;}
+.rdr .doc-header{text-align:center;border-bottom:2px dashed var(--tc);margin-bottom:16px;padding-bottom:12px;}
+.rdr iframe.page-music{display:none;}
+@keyframes slowBlink{0%,100%{opacity:1;}50%{opacity:0.45;}}
+@keyframes fadeBlink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+/* LOCK overlay */
+.lock-overlay{position:absolute;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;font-size:1.4rem;text-shadow:0 0 6px var(--tc);z-index:50;}
+.lock-methods{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:8px;}
+/* EDITOR */
+#s-editor{flex-direction:column;overflow:hidden;}
+.editor-topbar{display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--tc);flex-shrink:0;flex-wrap:wrap;}
+.editor-body{flex:1;display:flex;overflow:hidden;}
+.editor-left{flex:1;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--tc);}
+.editor-preview{flex:1;overflow-y:auto;padding:16px;text-shadow:0 0 4px var(--tc);}
+.editor-toolbar{display:flex;gap:4px;padding:6px 8px;border-bottom:1px solid var(--tc);flex-wrap:wrap;}
+.editor-toolbar .btn-ghost{font-size:0.9rem;padding:2px 7px;}
+#editor-raw{flex:1;overflow-y:auto;padding:8px;font-family:'VT323',monospace;font-size:1.05rem;resize:none;background:transparent;color:var(--tc);border:none;outline:none;text-transform:none;line-height:1.5;}
+.editor-right{width:280px;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;font-size:0.95rem;}
+.editor-right .section-hdr{font-size:1.1rem;border-bottom:1px solid var(--tc);padding-bottom:4px;margin-bottom:6px;}
+.perm-tag{display:inline-block;background:var(--tc-bg);border:1px solid var(--tc);padding:2px 8px;font-size:0.85rem;margin:2px;cursor:pointer;}
+.perm-tag:hover{background:var(--tc);color:var(--bg);}
+/* HACKING MINIGAME */
+#s-hack{flex-direction:column;align-items:center;justify-content:center;overflow:hidden;}
+.hack-wrap{max-width:860px;width:100%;padding:16px;font-size:1.2rem;text-shadow:0 0 5px var(--tc);}
+.hack-hdr{margin-bottom:12px;}
+.hack-attempts{margin-bottom:8px;letter-spacing:2px;}
+.hack-area{display:flex;gap:2rem;}
+.hack-col{flex:1;line-height:1.3;letter-spacing:2px;white-space:pre;}
+.hword,.hbracket,.hchar{cursor:pointer;}
+.hword:hover:not(.hdud),.hbracket:hover,.hchar:hover{background:var(--tc);color:var(--bg);}
+.hdud{opacity:0.45;pointer-events:none;}
+.hack-log{margin-top:12px;border-top:1px solid var(--tc);padding-top:8px;height:90px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;}
+.hack-log div{margin:0;}
+/* LOCKOUT */
+#s-lockout{flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:2rem;text-shadow:0 0 10px var(--tc);animation:slowBlink 2s infinite;}
+/* Misc */
+#sysinfo{position:fixed;top:10px;left:16px;z-index:200;font-size:0.95rem;text-shadow:0 0 4px var(--tc);pointer-events:none;}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:5000;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--bg);border:2px solid var(--tc);padding:1.5rem;max-width:520px;width:90%;max-height:80vh;overflow-y:auto;position:relative;}
+.modal h3{font-size:1.3rem;margin-bottom:12px;letter-spacing:2px;}
+.modal-close{position:absolute;top:8px;right:14px;cursor:pointer;font-size:1.2rem;}
+.music-bar{display:flex;align-items:center;gap:8px;padding:6px 12px;border-top:1px solid var(--tc);font-size:0.95rem;flex-shrink:0;}
+.music-bar input[type=range]{accent-color:var(--tc);cursor:pointer;flex:1;}
+.music-bar button{background:none;border:1px solid var(--tc);color:var(--tc);font-family:inherit;font-size:1rem;cursor:pointer;padding:2px 8px;text-transform:uppercase;}
+.music-bar button:hover{background:var(--tc);color:var(--bg);}
+#song-display{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;}
+.no-doc{flex:1;display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:var(--tc-dim);text-align:center;padding:24px;}
+</style>
+</head>
+<body>
+<audio id="bg-music"></audio>
+<div id="sysinfo">TIME: <span id="clk"></span></div>
+
+<div id="master">
+
+<!-- AUTH -->
+<div class="screen active" id="s-auth">
+  <div class="auth-box">
+    <h2>ROBCO CODEX<br><span style="font-size:0.8rem;letter-spacing:1px;color:var(--tc-dim)">UNIFIED ARCHIVE SYSTEM v1.0</span></h2>
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">LOGIN</div>
+      <div class="auth-tab" id="tab-reg" onclick="switchAuthTab('reg')">REGISTER</div>
+    </div>
+    <div id="auth-login">
+      <div class="field"><div class="label">EMAIL</div><input id="l-email" type="email" autocomplete="off"></div>
+      <div class="field"><div class="label">PASSWORD</div><input id="l-pass" type="password"></div>
+      <button class="btn" style="width:100%;margin-top:4px;" onclick="doLogin()">AUTHENTICATE</button>
+    </div>
+    <div id="auth-reg" style="display:none;">
+      <div class="field"><div class="label">DISPLAY NAME (CALLSIGN)</div><input id="r-name" maxlength="20" autocomplete="off"></div>
+      <div class="field"><div class="label">EMAIL</div><input id="r-email" type="email" autocomplete="off"></div>
+      <div class="field"><div class="label">PASSWORD (MIN 6)</div><input id="r-pass" type="password"></div>
+      <button class="btn" style="width:100%;margin-top:4px;" onclick="doRegister()">CREATE ACCOUNT</button>
+    </div>
+    <div id="auth-err" style="color:#dc143c;margin-top:10px;font-size:0.95rem;text-align:center;min-height:20px;"></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="screen" id="s-dash">
+  <div class="topbar">
+    <span class="topbar-title">CODEX ARCHIVE</span>
+    <span id="topbar-user" style="color:var(--tc-dim);font-size:0.95rem;"></span>
+    <button class="btn-ghost" onclick="openNewDoc()">+ NEW FILE</button>
+    <button class="btn-ghost" onclick="doLogout()">LOGOUT</button>
+  </div>
+  <div class="dash-body">
+    <div class="sidebar">
+      <div class="sidebar-hdr">
+        <span>FILES</span>
+        <select id="filter-select" style="width:auto;border:none;border-bottom:none;font-size:0.85rem;" onchange="applyFilter()">
+          <option value="all">ALL</option>
+          <option value="mine">MY FILES</option>
+          <option value="shared">SHARED</option>
+          <option value="public">PUBLIC</option>
+        </select>
+      </div>
+      <div class="doc-list cs" id="doc-list"></div>
+    </div>
+    <div class="main-area" style="position:relative;">
+      <div id="doc-view" style="display:none;position:relative;">
+        <div class="doc-toolbar" id="doc-toolbar">
+          <span id="doc-title-display" style="font-size:1.1rem;letter-spacing:1px;margin-right:auto;color:var(--tc);text-shadow:0 0 4px var(--tc);"></span>
+          <button class="btn-ghost" id="btn-edit" onclick="openEditor()" style="display:none;">EDIT</button>
+          <button class="btn-ghost" id="btn-perms" onclick="openPermsModal()" style="display:none;">PERMISSIONS</button>
+          <button class="btn-ghost btn-red" id="btn-del" onclick="deleteDoc()" style="display:none;background:#dc143c;color:#fff;border-color:#dc143c;">DELETE</button>
+        </div>
+        <div class="doc-content-wrap cs rdr" id="doc-render" style="position:relative;"></div>
+      </div>
+      <div class="no-doc" id="no-doc">
+        <div>
+          ROBCO CODEX SYSTEM<br>
+          <span style="color:var(--tc-dim);font-size:0.95rem;">SELECT A FILE FROM THE SIDEBAR<br>OR CREATE A NEW ONE</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="music-bar">
+    <span id="song-display">NO AUDIO</span>
+    <input type="range" id="m-seek" min="0" max="100" step="0.1" value="0" style="max-width:140px;" title="seek" oninput="bgMusic.currentTime=(this.value/100)*bgMusic.duration">
+    <span id="m-time" style="font-size:0.85rem;min-width:60px;">0:00 / 0:00</span>
+    <button onclick="togglePlay()">▶/❚❚</button>
+    <button onclick="skipTrack()">SKIP</button>
+    <input type="range" id="m-vol" min="0" max="1" step="0.01" value="0.5" style="max-width:80px;" title="volume" oninput="bgMusic.volume=this.value*0.6">
+  </div>
+</div>
+
+<!-- EDITOR -->
+<div class="screen" id="s-editor">
+  <div class="editor-topbar">
+    <span style="font-size:1.1rem;letter-spacing:2px;margin-right:auto;" id="editor-title-hdr">EDITING: UNTITLED</span>
+    <button class="btn-ghost" onclick="insertSnippet('section')">+SECTION</button>
+    <button class="btn-ghost" onclick="insertSnippet('table')">+TABLE</button>
+    <button class="btn-ghost" onclick="insertSnippet('special')">+SPECIAL</button>
+    <button class="btn-ghost" onclick="insertSnippet('image')">+IMAGE</button>
+    <button class="btn-ghost" onclick="insertSnippet('redact')">+REDACT</button>
+    <button class="btn-ghost" onclick="insertSnippet('addendum')">+ADDENDUM</button>
+    <button class="btn-ghost" onclick="insertSnippet('alert')">+ALERT</button>
+    <button class="btn" onclick="saveDoc()">SAVE</button>
+    <button class="btn-ghost" onclick="closeEditor()">CANCEL</button>
+  </div>
+  <div class="editor-body">
+    <div class="editor-left">
+      <div class="editor-toolbar">
+        <span style="font-size:0.85rem;color:var(--tc-dim);margin-right:4px;">PREVIEW:</span>
+        <button class="btn-ghost" id="toggle-preview-btn" onclick="togglePreviewMode()">SHOW</button>
+      </div>
+      <div style="flex:1;display:flex;overflow:hidden;">
+        <textarea id="editor-raw" class="cs" spellcheck="false" oninput="livePreview()"></textarea>
+        <div class="editor-preview cs rdr" id="editor-preview-pane" style="display:none;flex:1;border-left:1px solid var(--tc);padding:16px;overflow-y:auto;"></div>
+      </div>
+    </div>
+    <div class="editor-right cs">
+      <div>
+        <div class="section-hdr">FILE INFO</div>
+        <div class="field"><div class="label">TITLE</div><input id="e-title" maxlength="80"></div>
+        <div class="field"><div class="label">TAGS (COMMA-SEP)</div><input id="e-tags" maxlength="100"></div>
+      </div>
+      <div>
+        <div class="section-hdr">PAGE MUSIC</div>
+        <div class="field"><div class="label">AUDIO URL (.MP3/.OGG)</div><input id="e-music" placeholder="HTTPS://..."></div>
+        <div style="font-size:0.8rem;color:var(--tc-dim);">PLAYS WHEN FILE IS OPENED. LEAVE BLANK FOR NONE.</div>
+      </div>
+      <div>
+        <div class="section-hdr">ACCESS</div>
+        <div class="field">
+          <div class="label">VISIBILITY</div>
+          <select id="e-visibility">
+            <option value="private">PRIVATE (ONLY ME)</option>
+            <option value="unlisted">LISTED (VIEWERS/EDITORS)</option>
+            <option value="public">PUBLIC (ANYONE)</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="label">LOCK TYPE</div>
+          <select id="e-lock">
+            <option value="none">NONE — OPEN</option>
+            <option value="hack">HACKING MINIGAME</option>
+            <option value="password">PASSWORD</option>
+          </select>
+        </div>
+        <div class="field" id="e-pw-field" style="display:none;">
+          <div class="label">LOCK PASSWORD</div>
+          <input id="e-pw" maxlength="40">
+        </div>
+        <div class="field">
+          <div class="label">EDITORS (EMAILS, ONE PER LINE)</div>
+          <textarea id="e-editors" style="min-height:60px;font-size:0.95rem;"></textarea>
+        </div>
+        <div class="field">
+          <div class="label">VIEWERS (EMAILS, ONE PER LINE)</div>
+          <textarea id="e-viewers" style="min-height:60px;font-size:0.95rem;"></textarea>
+        </div>
+      </div>
+      <div>
+        <div class="section-hdr">MARKUP GUIDE</div>
+        <div style="font-size:0.8rem;color:var(--tc-dim);line-height:1.6;">
+          # TITLE<br>
+          ## SECTION HEADING<br>
+          ### SUBSECTION<br>
+          **bold** _italic_<br>
+          [IMAGE:url]<br>
+          [IMAGE:url|caption]<br>
+          [IMGRID:url1,url2]<br>
+          [SPECIAL:S5 P4 E6 C3 I7 A5 L4]<br>
+          [TABLE:H1,H2|R1C1,R1C2|R2C1,R2C2]<br>
+          [REDACT:hidden text]<br>
+          [ADDENDUM:text]<br>
+          [ALERT:text]<br>
+          [MUSIC:url] (inline player)<br>
+          --- (divider)
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HACKING -->
+<div class="screen" id="s-hack">
+  <div class="hack-wrap">
+    <div class="hack-hdr">
+      ROBCO INDUSTRIES UNIFIED OPERATING SYSTEM<br>
+      SECURITY OVERRIDE REQUIRED — ACCESSING RESTRICTED FILE<br>
+      <span id="hack-doc-name" style="color:var(--tc-dim);font-size:0.95rem;"></span>
+    </div>
+    <div class="hack-attempts" id="hack-attempts"></div>
+    <div class="hack-area">
+      <div class="hack-col" id="hcol1"></div>
+      <div class="hack-col" id="hcol2"></div>
+    </div>
+    <div class="hack-log" id="hack-log"></div>
+    <div style="margin-top:12px;display:flex;gap:12px;">
+      <button class="btn-ghost" onclick="cancelHack()">ABORT ACCESS</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOCKOUT -->
+<div class="screen" id="s-lockout">
+  <div>TERMINAL LOCKED<br>SECURITY PROTOCOL ACTIVE</div>
+  <div id="lockout-timer" style="margin-top:20px;font-size:1.5rem;"></div>
+  <button class="btn-ghost" style="margin-top:20px;" onclick="cancelHack()">RETURN</button>
+</div>
+
+</div><!-- /master -->
+
+<!-- PERMISSIONS MODAL -->
+<div class="modal-bg" id="perms-modal">
+  <div class="modal cs">
+    <div class="modal-close" onclick="closeModal('perms-modal')">[X]</div>
+    <h3>PERMISSIONS — <span id="pm-title"></span></h3>
+    <div class="field"><div class="label">VISIBILITY</div>
+      <select id="pm-vis" style="width:auto;"><option value="private">PRIVATE</option><option value="unlisted">LISTED</option><option value="public">PUBLIC</option></select>
+    </div>
+    <div class="field"><div class="label">LOCK</div>
+      <select id="pm-lock" style="width:auto;" onchange="pmLockChange()"><option value="none">NONE</option><option value="hack">HACKING</option><option value="password">PASSWORD</option></select>
+    </div>
+    <div class="field" id="pm-pw-field" style="display:none;"><div class="label">PASSWORD</div><input id="pm-pw"></div>
+    <div class="field"><div class="label">EDITORS (EMAILS, ONE PER LINE)</div><textarea id="pm-editors" style="min-height:60px;font-size:0.95rem;"></textarea></div>
+    <div class="field"><div class="label">VIEWERS (EMAILS, ONE PER LINE)</div><textarea id="pm-viewers" style="min-height:60px;font-size:0.95rem;"></textarea></div>
+    <button class="btn" onclick="savePerms()">SAVE PERMISSIONS</button>
+  </div>
+</div>
+
+<!-- PASSWORD UNLOCK MODAL -->
+<div class="modal-bg" id="pw-modal">
+  <div class="modal">
+    <h3>RESTRICTED ACCESS</h3>
+    <p style="font-size:1rem;color:var(--tc-dim);margin-bottom:12px;">THIS FILE REQUIRES A PASSWORD TO VIEW.</p>
+    <div class="field"><div class="label">PASSWORD</div><input id="pw-input" type="password" onkeydown="if(event.key==='Enter')checkPW()"></div>
+    <div id="pw-err" style="color:#dc143c;font-size:0.95rem;min-height:16px;margin-bottom:8px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn" onclick="checkPW()">DECRYPT</button>
+      <button class="btn-ghost" onclick="closeModal('pw-modal')">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const firebaseConfig={apiKey:"AIzaSyDmUZ5mw9QPZFjlgujcJF8lK0Hg5lxeDKg",authDomain:"terminal-cracker-v2077.firebaseapp.com",databaseURL:"https://terminal-cracker-v2077-default-rtdb.firebaseio.com",projectId:"terminal-cracker-v2077",storageBucket:"terminal-cracker-v2077.firebasestorage.app",messagingSenderId:"772662562385",appId:"1:772662562385:web:ce27ffa901d0413b94b270"};
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth();
+const db=firebase.database();
+const bgMusic=document.getElementById('bg-music');
+let currentUser=null,userProfile=null,allDocs={},selectedDocId=null,editingDocId=null,hackTargetId=null,hackTargetDoc=null,hackCallback=null;
+let hackAttempts=4,hackLogs=[],hackPassword='',hackWords=[],hackSlots=[];
+let lockoutActive=false,lockoutInterval=null;
+let showPreview=false;
+const WORDPOOL=["BROTHERHOODS","PRESERVATION","CONSERVATION","TRANSMISSION","ASSIMILATION","CATASTROPHIC","TECHNOLOGIES","CIVILIZATION","ANNIHILATION","REGENERATION","ILLUMINATING","PURIFICATION","CONSTRUCTION","MODIFICATION","PACIFICATION","INDEPENDENCE","APPRECIATION","INTERFERENCE","OVERWHELMING","RADIOLOGICAL"];
+const GIBCHARS="!@#$%^&*()_+-=[]{}|;':\",./<>?";
+const BPAIRS={'(':')','{':'}','[':']','<':'>'};
+
+// ===== CLOCK =====
+setInterval(()=>{document.getElementById('clk').innerText=new Date().toLocaleTimeString('en-US',{hour12:false});},1000);
+
+// ===== AUDIO =====
+let currentTrackIdx=0;
+const TRACKS=[];
+function formatSongName(f){return f.replace(/\.(mp3|ogg|wav)$/i,'').replace(/_/g,' ').toUpperCase();}
+function togglePlay(){bgMusic.paused?bgMusic.play():bgMusic.pause();}
+function skipTrack(){if(!TRACKS.length)return;currentTrackIdx=(currentTrackIdx+1)%TRACKS.length;loadTrack(TRACKS[currentTrackIdx]);}
+function loadTrack(url){if(!url)return;bgMusic.src=url;bgMusic.play().catch(()=>{});document.getElementById('song-display').innerText=formatSongName(url.split('/').pop());}
+bgMusic.addEventListener('ended',skipTrack);
+bgMusic.addEventListener('timeupdate',()=>{
+  if(!bgMusic.duration)return;
+  const p=document.getElementById('m-seek');if(!p.matches(':active'))p.value=(bgMusic.currentTime/bgMusic.duration)*100;
+  const ft=s=>{if(isNaN(s))return'0:00';return Math.floor(s/60)+':'+(Math.floor(s%60)+'').padStart(2,'0');};
+  document.getElementById('m-time').innerText=ft(bgMusic.currentTime)+' / '+ft(bgMusic.duration);
+});
+
+// ===== AUTH =====
+function switchAuthTab(t){
+  document.getElementById('tab-login').classList.toggle('active',t==='login');
+  document.getElementById('tab-reg').classList.toggle('active',t==='reg');
+  document.getElementById('auth-login').style.display=t==='login'?'block':'none';
+  document.getElementById('auth-reg').style.display=t==='reg'?'block':'none';
+  document.getElementById('auth-err').innerText='';
+}
+function setAuthErr(m){document.getElementById('auth-err').innerText=m;}
+function doLogin(){
+  const e=document.getElementById('l-email').value.trim();
+  const p=document.getElementById('l-pass').value;
+  if(!e||!p){setAuthErr('ENTER EMAIL AND PASSWORD');return;}
+  auth.signInWithEmailAndPassword(e,p).catch(err=>setAuthErr('ERROR: '+err.message.toUpperCase()));
+}
+function doRegister(){
+  const name=document.getElementById('r-name').value.trim().toUpperCase();
+  const e=document.getElementById('r-email').value.trim();
+  const p=document.getElementById('r-pass').value;
+  if(!name||name.length<2){setAuthErr('CALLSIGN REQUIRED (MIN 2 CHARS)');return;}
+  if(!e||p.length<6){setAuthErr('VALID EMAIL AND PASSWORD (6+) REQUIRED');return;}
+  auth.createUserWithEmailAndPassword(e,p).then(cred=>{
+    return db.ref('users/'+cred.user.uid).set({name,email:e,createdAt:Date.now()});
+  }).catch(err=>setAuthErr('ERROR: '+err.message.toUpperCase()));
+}
+function doLogout(){auth.signOut();}
+
+auth.onAuthStateChanged(user=>{
+  currentUser=user;
+  if(user){
+    db.ref('users/'+user.uid).once('value').then(snap=>{
+      userProfile=snap.val()||{name:user.email,email:user.email};
+      document.getElementById('topbar-user').innerText='USER: '+userProfile.name;
+      showScreen('s-dash');
+      loadDocs();
+    });
+  } else {
+    showScreen('s-auth');
+    allDocs={};
+    selectedDocId=null;
+  }
+});
+
+// ===== SCREEN MANAGEMENT =====
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ===== DOCS LOADING =====
+let docsListener=null;
+function loadDocs(){
+  if(docsListener)docsListener();
+  const ref=db.ref('docs');
+  docsListener=ref.on('value',snap=>{
+    allDocs=snap.val()||{};
+    renderDocList();
+    if(selectedDocId&&allDocs[selectedDocId])refreshDocView();
+  });
+}
+
+function canView(doc){
+  if(!currentUser)return doc.visibility==='public';
+  if(doc.ownerUID===currentUser.uid)return true;
+  if(doc.visibility==='public')return true;
+  const em=currentUser.email.toLowerCase().replace(/\./g,'_');
+  if(doc.editors&&doc.editors[em])return true;
+  if(doc.viewers&&doc.viewers[em])return true;
+  return false;
+}
+function canEdit(doc){
+  if(!currentUser)return false;
+  if(doc.ownerUID===currentUser.uid)return true;
+  const em=currentUser.email.toLowerCase().replace(/\./g,'_');
+  return doc.editors&&doc.editors[em]?true:false;
+}
+
+function applyFilter(){renderDocList();}
+function renderDocList(){
+  const filter=document.getElementById('filter-select').value;
+  const list=document.getElementById('doc-list');
+  const em=currentUser?currentUser.email.toLowerCase().replace(/\./g,'_'):'';
+  const entries=Object.entries(allDocs).filter(([id,doc])=>{
+    if(!canView(doc))return false;
+    if(filter==='mine')return doc.ownerUID===currentUser.uid;
+    if(filter==='shared')return doc.ownerUID!==currentUser.uid&&(doc.editors&&doc.editors[em]||doc.viewers&&doc.viewers[em]);
+    if(filter==='public')return doc.visibility==='public';
+    return true;
+  }).sort((a,b)=>(b[1].updatedAt||0)-(a[1].updatedAt||0));
+  list.innerHTML='';
+  if(!entries.length){list.innerHTML='<div style="padding:12px;color:var(--tc-dim);font-size:0.95rem;">NO FILES FOUND</div>';return;}
+  entries.forEach(([id,doc])=>{
+    const div=document.createElement('div');
+    div.className='doc-item'+(id===selectedDocId?' selected':'');
+    const lock=doc.lockType&&doc.lockType!=='none'?'🔒 ':'';
+    const vis=doc.visibility==='public'?'[PUB]':doc.visibility==='unlisted'?'[LST]':'[PRV]';
+    const owner=doc.ownerUID===currentUser.uid?'MINE':doc.ownerName||'UNKNOWN';
+    div.innerHTML=`<span class="lock-icon">${lock}</span><span class="doc-name" title="${escH(doc.title||'UNTITLED')}">${escH(doc.title||'UNTITLED')}</span><span class="doc-owner">${vis} ${owner}</span>`;
+    div.onclick=()=>selectDoc(id);
+    list.appendChild(div);
+  });
+}
+
+// ===== DOC SELECTION =====
+function selectDoc(id){
+  selectedDocId=id;
+  renderDocList();
+  const doc=allDocs[id];
+  if(!doc)return;
+  document.getElementById('no-doc').style.display='none';
+  document.getElementById('doc-view').style.display='flex';
+  document.getElementById('doc-title-display').innerText=doc.title||'UNTITLED';
+  document.getElementById('btn-edit').style.display=canEdit(doc)?'inline-block':'none';
+  document.getElementById('btn-perms').style.display=doc.ownerUID===currentUser.uid?'inline-block':'none';
+  document.getElementById('btn-del').style.display=doc.ownerUID===currentUser.uid?'inline-block':'none';
+  // Handle lock
+  if(doc.lockType&&doc.lockType!=='none'){
+    const isOwner=doc.ownerUID===currentUser.uid;
+    const em=currentUser.email.toLowerCase().replace(/\./g,'_');
+    const isEditor=doc.editors&&doc.editors[em];
+    const alreadyUnlocked=(sessionStorage.getItem('unlocked_'+id)==='1');
+    if(!isOwner&&!isEditor&&!alreadyUnlocked){
+      showLockOverlay(id,doc);
+      return;
+    }
+  }
+  renderDoc(id,doc);
+}
+
+function refreshDocView(){
+  if(!selectedDocId)return;
+  const doc=allDocs[selectedDocId];
+  if(doc)renderDoc(selectedDocId,doc);
+}
+
+function showLockOverlay(id,doc){
+  const wrap=document.getElementById('doc-render');
+  wrap.innerHTML='';
+  const ov=document.createElement('div');
+  ov.className='lock-overlay';
+  ov.id='lock-overlay-'+id;
+  ov.innerHTML=`<div style="font-size:1.8rem;letter-spacing:3px;">🔒 ACCESS RESTRICTED</div>
+  <div style="font-size:1rem;color:var(--tc-dim);">${escH(doc.title||'UNTITLED')} — ${doc.lockType==='hack'?'SECURITY TERMINAL LOCKED':'PASSWORD PROTECTED'}</div>
+  <div class="lock-methods">
+    ${doc.lockType==='hack'?`<button class="btn" onclick="startHack('${id}')">INITIATE HACKING SEQUENCE</button>`:''}
+    ${doc.lockType==='password'?`<button class="btn" onclick="openPWModal('${id}')">ENTER PASSWORD</button>`:''}
+    <button class="btn-ghost" onclick="cancelLock()">BACK</button>
+  </div>`;
+  wrap.appendChild(ov);
+}
+
+function cancelLock(){
+  selectedDocId=null;
+  renderDocList();
+  document.getElementById('doc-view').style.display='none';
+  document.getElementById('no-doc').style.display='flex';
+}
+
+function openPWModal(id){
+  hackTargetId=id;
+  document.getElementById('pw-input').value='';
+  document.getElementById('pw-err').innerText='';
+  openModal('pw-modal');
+}
+function checkPW(){
+  const doc=allDocs[hackTargetId];
+  if(!doc)return;
+  const entered=document.getElementById('pw-input').value;
+  if(entered===doc.lockPassword){
+    sessionStorage.setItem('unlocked_'+hackTargetId,'1');
+    closeModal('pw-modal');
+    renderDoc(hackTargetId,doc);
+  } else {
+    document.getElementById('pw-err').innerText='INCORRECT PASSWORD. ACCESS DENIED.';
+  }
+}
+
+// ===== RENDER DOC =====
+function renderDoc(id,doc){
+  const wrap=document.getElementById('doc-render');
+  // Page music
+  if(doc.pageMusic&&doc.pageMusic.trim()){
+    TRACKS.length=0;
+    TRACKS.push(doc.pageMusic.trim());
+    loadTrack(doc.pageMusic.trim());
+  }
+  wrap.innerHTML='<div class="rdr">'+parseMarkup(doc.body||'')+'</div>';
+  // Re-init redacts
+  wrap.querySelectorAll('.redact-block').forEach(el=>{
+    el.onclick=function(){revealRedact(this);};
+  });
+}
+
+// ===== MARKUP PARSER =====
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function parseMarkup(raw){
+  let lines=raw.split('\n');
+  let html='';
+  let inTable=false;
+  lines.forEach(line=>{
+    line=line.trimEnd();
+    // Special tags
+    if(/^\[IMAGE:(.+?)\]$/i.test(line)){
+      const m=line.match(/^\[IMAGE:(.+?)(?:\|(.+?))?\]$/i);
+      html+=`<img class="terminal-img" src="${escH(m[1].trim())}" alt="${escH(m[2]||'')}" onerror="this.style.border='2px dashed #dc143c';this.alt='IMAGE UNAVAILABLE'"><br>`;
+      return;
+    }
+    if(/^\[IMGRID:(.+?)\]$/i.test(line)){
+      const m=line.match(/^\[IMGRID:(.+?)\]$/i);
+      const imgs=m[1].split(',').map(u=>`<img class="terminal-img" src="${escH(u.trim())}" style="max-width:48%;" onerror="this.style.border='2px dashed #dc143c'">`).join('');
+      html+=`<div class="img-grid">${imgs}</div>`;
+      return;
+    }
+    if(/^\[SPECIAL:(.+?)\]$/i.test(line)){
+      const m=line.match(/^\[SPECIAL:(.+?)\]$/i);
+      const stats=m[1].trim().split(/\s+/);
+      const blocks=stats.map(s=>{const sp=s.split(':');const val=sp[1]||'?';return`<div class="special-stat">${escH(sp[0])}<span>${escH(val)}</span></div>`;}).join('');
+      html+=`<div class="special-grid">${blocks}</div>`;
+      return;
+    }
+    if(/^\[TABLE:(.+?)\]$/i.test(line)){
+      const m=line.match(/^\[TABLE:(.+?)\]$/i);
+      const parts=m[1].split('|');
+      const headers=parts[0].split(',').map(h=>`<th>${escH(h.trim())}</th>`).join('');
+      const rows=parts.slice(1).map(r=>'<tr>'+r.split(',').map(c=>`<td>${escH(c.trim())}</td>`).join('')+'</tr>').join('');
+      html+=`<table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
+      return;
+    }
+    if(/^\[REDACT:(.+?)\]$/i.test(line)){
+      const m=line.match(/^\[REDACT:(.+?)\]$/i);
+      html+=`<span class="redact-block" onclick="revealRedact(this)">[██████████ CLASSIFIED — TAP TO DECRYPT]</span><span class="redact-hidden">${escH(m[1])}</span><br>`;
+      return;
+    }
+    if(/^\[ADDENDUM:(.+?)\]$/i.test(line)){
+      const m=line.match(/^\[ADDENDUM:(.+?)\]$/i);
+      html+=`<div class="addendum">${escH(m[1])}</div>`;
+      return;
+    }
+    if(/^\[ALERT:(.+?)\]$/i.test(line)){
+      const m=line.match(/^\[ALERT:(.+?)\]$/i);
+      html+=`<span class="alert">${escH(m[1])}</span>`;
+      return;
+    }
+    if(/^\[MUSIC:(.+?)\]$/i.test(line)){
+      const m=line.match(/^\[MUSIC:(.+?)\]$/i);
+      html+=`<div style="margin:8px 0;"><button class="btn-ghost" onclick="loadTrack('${escH(m[1].trim())}')">▶ PLAY: ${escH(m[1].trim().split('/').pop())}</button></div>`;
+      return;
+    }
+    if(/^---+$/.test(line)){html+='<hr>';return;}
+    // Headings
+    if(/^### (.+)/.test(line)){html+=`<h3 style="font-size:1.2rem;margin:8px 0 4px;">${inlineMarkup(line.replace(/^### /,''))}</h3>`;return;}
+    if(/^## (.+)/.test(line)){html+=`<h2>${inlineMarkup(line.replace(/^## /,''))}</h2>`;return;}
+    if(/^# (.+)/.test(line)){html+=`<h1>${inlineMarkup(line.replace(/^# /,''))}</h1>`;return;}
+    // Lists
+    if(/^[-*] (.+)/.test(line)){html+=`<ul style="margin:2px 0 2px 20px;"><li>${inlineMarkup(line.replace(/^[-*] /,''))}</li></ul>`;return;}
+    if(/^\d+\. (.+)/.test(line)){const m=line.match(/^\d+\. (.+)/);html+=`<ol style="margin:2px 0 2px 20px;"><li>${inlineMarkup(m[1])}</li></ol>`;return;}
+    // Blank line
+    if(line.trim()===''){html+='<br>';return;}
+    html+=`<p>${inlineMarkup(line)}</p>`;
+  });
+  return html;
+}
+function inlineMarkup(s){
+  return escH(s)
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/_(.+?)_/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code style="background:var(--tc-bg);padding:0 4px;">$1</code>');
+}
+function revealRedact(el){
+  el.style.display='none';
+  const h=el.nextElementSibling;
+  if(h){h.classList.remove('redact-hidden');h.classList.add('redact-revealed');}
+}
+
+// ===== NEW DOC =====
+function openNewDoc(){
+  editingDocId=null;
+  document.getElementById('editor-title-hdr').innerText='NEW FILE';
+  document.getElementById('e-title').value='UNTITLED FILE';
+  document.getElementById('e-tags').value='';
+  document.getElementById('e-music').value='';
+  document.getElementById('e-visibility').value='private';
+  document.getElementById('e-lock').value='none';
+  document.getElementById('e-pw').value='';
+  document.getElementById('e-pw-field').style.display='none';
+  document.getElementById('e-editors').value='';
+  document.getElementById('e-viewers').value='';
+  document.getElementById('editor-raw').value='# UNTITLED FILE\n\n[Write your document here...]\n\n## SECTION I\n\nContent goes here.';
+  showPreview=false;
+  document.getElementById('editor-preview-pane').style.display='none';
+  document.getElementById('editor-raw').style.flex='1';
+  document.getElementById('toggle-preview-btn').innerText='SHOW';
+  livePreview();
+  showScreen('s-editor');
+}
+
+function openEditor(){
+  if(!selectedDocId)return;
+  const doc=allDocs[selectedDocId];
+  if(!doc||!canEdit(doc))return;
+  editingDocId=selectedDocId;
+  document.getElementById('editor-title-hdr').innerText='EDITING: '+escH(doc.title||'UNTITLED');
+  document.getElementById('e-title').value=doc.title||'';
+  document.getElementById('e-tags').value=(doc.tags||[]).join(', ');
+  document.getElementById('e-music').value=doc.pageMusic||'';
+  document.getElementById('e-visibility').value=doc.visibility||'private';
+  document.getElementById('e-lock').value=doc.lockType||'none';
+  document.getElementById('e-pw').value=doc.lockPassword||'';
+  document.getElementById('e-pw-field').style.display=doc.lockType==='password'?'block':'none';
+  // editors/viewers
+  const editList=Object.keys(doc.editors||{}).map(k=>k.replace(/_/g,'.'));
+  const viewList=Object.keys(doc.viewers||{}).map(k=>k.replace(/_/g,'.'));
+  document.getElementById('e-editors').value=editList.join('\n');
+  document.getElementById('e-viewers').value=viewList.join('\n');
+  document.getElementById('editor-raw').value=doc.body||'';
+  showPreview=false;
+  document.getElementById('editor-preview-pane').style.display='none';
+  document.getElementById('editor-raw').style.flex='1';
+  document.getElementById('toggle-preview-btn').innerText='SHOW';
+  livePreview();
+  showScreen('s-editor');
+}
+document.getElementById('e-lock').addEventListener('change',function(){
+  document.getElementById('e-pw-field').style.display=this.value==='password'?'block':'none';
+});
+
+function closeEditor(){showScreen('s-dash');}
+
+function togglePreviewMode(){
+  showPreview=!showPreview;
+  document.getElementById('editor-preview-pane').style.display=showPreview?'block':'none';
+  document.getElementById('editor-raw').style.flex=showPreview?'0 0 50%':'1';
+  document.getElementById('toggle-preview-btn').innerText=showPreview?'HIDE':'SHOW';
+  if(showPreview)livePreview();
+}
+function livePreview(){
+  if(!showPreview)return;
+  const raw=document.getElementById('editor-raw').value;
+  document.getElementById('editor-preview-pane').innerHTML=parseMarkup(raw);
+}
+
+function insertSnippet(type){
+  const ta=document.getElementById('editor-raw');
+  const pos=ta.selectionStart;
+  const snippets={
+    section:'\n## SECTION TITLE\n\nContent here.\n',
+    table:'\n[TABLE:HEADER1,HEADER2|Cell1,Cell2|Cell3,Cell4]\n',
+    special:'\n[SPECIAL:S:5 P:4 E:6 C:3 I:7 A:5 L:4]\n',
+    image:'\n[IMAGE:https://example.com/image.jpg|Optional Caption]\n',
+    redact:'\n[REDACT:Hidden classified text here]\n',
+    addendum:'\n[ADDENDUM:Important addendum note here.]\n',
+    alert:'\n[ALERT:Warning message here.]\n',
+  };
+  const s=snippets[type]||'';
+  ta.value=ta.value.slice(0,pos)+s+ta.value.slice(pos);
+  ta.selectionStart=ta.selectionEnd=pos+s.length;
+  ta.focus();
+  livePreview();
+}
+
+function saveDoc(){
+  const title=document.getElementById('e-title').value.trim()||'UNTITLED';
+  const body=document.getElementById('editor-raw').value;
+  const tags=document.getElementById('e-tags').value.split(',').map(t=>t.trim()).filter(Boolean);
+  const visibility=document.getElementById('e-visibility').value;
+  const lockType=document.getElementById('e-lock').value;
+  const lockPassword=lockType==='password'?document.getElementById('e-pw').value:'';
+  const pageMusic=document.getElementById('e-music').value.trim();
+  // Build editors/viewers maps
+  const parseList=str=>{
+    const obj={};
+    str.split('\n').map(l=>l.trim().toLowerCase()).filter(Boolean).forEach(e=>{
+      obj[e.replace(/\./g,'_')]=true;
+    });
+    return obj;
+  };
+  const editors=parseList(document.getElementById('e-editors').value);
+  const viewers=parseList(document.getElementById('e-viewers').value);
+  const now=Date.now();
+  if(editingDocId){
+    const existing=allDocs[editingDocId];
+    db.ref('docs/'+editingDocId).update({title,body,tags,visibility,lockType,lockPassword,pageMusic,editors,viewers,updatedAt:now}).then(()=>{
+      selectedDocId=editingDocId;
+      showScreen('s-dash');
+    });
+  } else {
+    const newRef=db.ref('docs').push();
+    newRef.set({title,body,tags,visibility,lockType,lockPassword,pageMusic,editors,viewers,ownerUID:currentUser.uid,ownerName:userProfile.name,createdAt:now,updatedAt:now}).then(()=>{
+      selectedDocId=newRef.key;
+      showScreen('s-dash');
+    });
+  }
+}
+
+function deleteDoc(){
+  if(!selectedDocId)return;
+  const doc=allDocs[selectedDocId];
+  if(!doc||doc.ownerUID!==currentUser.uid)return;
+  if(!confirm('DELETE "'+doc.title+'"? THIS CANNOT BE UNDONE.'))return;
+  db.ref('docs/'+selectedDocId).remove().then(()=>{
+    selectedDocId=null;
+    document.getElementById('doc-view').style.display='none';
+    document.getElementById('no-doc').style.display='flex';
+  });
+}
+
+// ===== PERMS MODAL =====
+function openPermsModal(){
+  if(!selectedDocId)return;
+  const doc=allDocs[selectedDocId];
+  if(!doc)return;
+  document.getElementById('pm-title').innerText=escH(doc.title||'UNTITLED');
+  document.getElementById('pm-vis').value=doc.visibility||'private';
+  document.getElementById('pm-lock').value=doc.lockType||'none';
+  document.getElementById('pm-pw').value=doc.lockPassword||'';
+  document.getElementById('pm-pw-field').style.display=doc.lockType==='password'?'block':'none';
+  document.getElementById('pm-editors').value=Object.keys(doc.editors||{}).map(k=>k.replace(/_/g,'.')).join('\n');
+  document.getElementById('pm-viewers').value=Object.keys(doc.viewers||{}).map(k=>k.replace(/_/g,'.')).join('\n');
+  openModal('perms-modal');
+}
+function pmLockChange(){
+  document.getElementById('pm-pw-field').style.display=document.getElementById('pm-lock').value==='password'?'block':'none';
+}
+function savePerms(){
+  if(!selectedDocId)return;
+  const parseList=str=>{const obj={};str.split('\n').map(l=>l.trim().toLowerCase()).filter(Boolean).forEach(e=>{obj[e.replace(/\./g,'_')]=true;});return obj;};
+  db.ref('docs/'+selectedDocId).update({
+    visibility:document.getElementById('pm-vis').value,
+    lockType:document.getElementById('pm-lock').value,
+    lockPassword:document.getElementById('pm-lock').value==='password'?document.getElementById('pm-pw').value:'',
+    editors:parseList(document.getElementById('pm-editors').value),
+    viewers:parseList(document.getElementById('pm-viewers').value),
+    updatedAt:Date.now()
+  }).then(()=>closeModal('perms-modal'));
+}
+
+// ===== MODALS =====
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-bg').forEach(mb=>{mb.addEventListener('click',e=>{if(e.target===mb)mb.classList.remove('open');});});
+
+// ===== HACKING MINIGAME =====
+function startHack(docId){
+  hackTargetId=docId;
+  hackTargetDoc=allDocs[docId];
+  hackAttempts=4;
+  hackLogs=['> AWAITING INPUT...'];
+  document.getElementById('hack-doc-name').innerText='TARGET: '+(hackTargetDoc.title||'UNKNOWN').toUpperCase();
+  generateHackBoard();
+  showScreen('s-hack');
+}
+
+function cancelHack(){
+  selectedDocId=null;
+  renderDocList();
+  document.getElementById('doc-view').style.display='none';
+  document.getElementById('no-doc').style.display='flex';
+  showScreen('s-dash');
+}
+
+function hackLog(t){
+  hackLogs.push(t);
+  if(hackLogs.length>5)hackLogs.shift();
+  document.getElementById('hack-log').innerHTML=hackLogs.map(l=>'<div>'+escH(l)+'</div>').join('');
+}
+function updateHackAttempts(){
+  let b='';for(let i=0;i<hackAttempts;i++)b+='█ ';
+  document.getElementById('hack-attempts').innerHTML=hackAttempts+' ATTEMPT(S) LEFT: '+b;
+}
+
+function generateHackBoard(){
+  const words=WORDPOOL.sort(()=>0.5-Math.random()).slice(0,15);
+  hackWords=words;
+  hackPassword=words[Math.floor(Math.random()*words.length)];
+  let slots=new Array(544).fill(null);
+  words.forEach(word=>{
+    let placed=false;
+    while(!placed){
+      let idx=Math.floor(Math.random()*(544-12));
+      let row=Math.floor(idx/16);
+      let rowEnd=Math.floor((idx+11)/16);
+      if(row===rowEnd){
+        let free=true;
+        for(let i=0;i<12;i++){if(slots[idx+i]!==null){free=false;break;}}
+        if(free){for(let i=0;i<12;i++)slots[idx+i]={type:'word',char:word[i],wordId:word};placed=true;}
+      }
+    }
+  });
+  for(let i=0;i<544;i++){if(slots[i]===null)slots[i]={type:'gibberish',char:GIBCHARS[Math.floor(Math.random()*GIBCHARS.length)]};}
+  for(let line=0;line<34;line++){
+    let start=line*16;let gs=[];
+    for(let i=start;i<start+16;i++){
+      if(slots[i].type==='gibberish'){gs.push(i);}
+      else{if(gs.length>=3&&Math.random()>0.4)makeBracket(slots,gs);gs=[];}
+    }
+    if(gs.length>=3&&Math.random()>0.4)makeBracket(slots,gs);
+  }
+  hackSlots=slots;
+  updateHackAttempts();
+  renderHackBoard(slots);
+}
+
+function makeBracket(slots,gs){
+  const bLen=Math.floor(Math.random()*(gs.length-1))+2;
+  const openKeys=Object.keys(BPAIRS);
+  const open=openKeys[Math.floor(Math.random()*openKeys.length)];
+  const close=BPAIRS[open];
+  const si=gs[0];const ei=gs[bLen-1];
+  const bid='b_'+Math.random().toString(36).substr(2,9);
+  slots[si].char=open;slots[si].bracketRole='open';
+  slots[ei].char=close;slots[ei].bracketRole='close';
+  for(let i=si;i<=ei;i++)slots[i].bracketId=bid;
+}
+
+function renderHackBoard(slots){
+  let c1='',c2='',aw=null,ab=null;
+  for(let i=0;i<544;i++){
+    let li=Math.floor(i/16);
+    if(i%16===0){
+      if(i!==0)(i<=271?c1+='\n':c2+='\n');
+      let hex='0x'+Math.floor(Math.random()*65535).toString(16).toUpperCase().padStart(4,'0');
+      (i<=271?c1+=hex+' ':c2+=hex+' ');
+    }
+    let slot=slots[i];
+    let out='';
+    if(slot.type==='word'){
+      if(aw!==slot.wordId){out+=`<span class="hword" data-word="${escH(slot.wordId)}" onclick="hackGuess('${escH(slot.wordId)}')" onmouseenter="hackHoverSfx()">`;aw=slot.wordId;}
+      out+=escH(slot.char);
+      if(i===543||slots[i+1]?.wordId!==aw){out+='</span>';aw=null;}
+    } else if(slot.bracketId){
+      if(ab!==slot.bracketId){out+=`<span class="hbracket" onclick="hackBracket(this)" onmouseenter="hackHoverSfx()">`;ab=slot.bracketId;}
+      out+=escH(slot.char);
+      if(i===543||slots[i+1]?.bracketId!==ab){out+='</span>';ab=null;}
+    } else {
+      out+=`<span class="hchar">${escH(slot.char)}</span>`;
+    }
+    if(i<272)c1+=out;else c2+=out;
+  }
+  document.getElementById('hcol1').innerHTML=c1;
+  document.getElementById('hcol2').innerHTML=c2;
+}
+
+window.hackGuess=function(guess){
+  let lik=0;for(let i=0;i<12;i++){if(guess[i]===hackPassword[i])lik++;}
+  if(guess===hackPassword){
+    hackLog('> '+guess);hackLog('> EXACT MATCH!');hackLog('> ACCESS GRANTED.');
+    setTimeout(()=>{
+      sessionStorage.setItem('unlocked_'+hackTargetId,'1');
+      selectedDocId=hackTargetId;
+      showScreen('s-dash');
+      renderDoc(hackTargetId,hackTargetDoc);
+      document.getElementById('doc-view').style.display='flex';
+      document.getElementById('no-doc').style.display='none';
+    },1000);
+    return;
+  }
+  hackAttempts--;hackLog('> '+guess);hackLog('> ENTRY DENIED.');hackLog('> LIKENESS='+lik);updateHackAttempts();
+  if(hackAttempts<=0){hackLog('> SECURITY LOCKOUT.');setTimeout(triggerHackLockout,1000);}
+};
+
+window.hackBracket=function(el){
+  if(el.dataset.used==='true')return;
+  el.dataset.used='true';el.style.pointerEvents='none';
+  if(Math.random()<0.2&&hackAttempts<4){
+    hackAttempts=4;updateHackAttempts();hackLog('> TRIES RESET.');
+  } else {
+    let ws=Array.from(document.querySelectorAll('.hword:not(.hdud)'));
+    let duds=ws.filter(w=>w.dataset.word!==hackPassword);
+    if(duds.length>0){let r=duds[Math.floor(Math.random()*duds.length)];r.innerHTML='.'.repeat(12);r.classList.add('hdud');hackLog('> DUD REMOVED.');}
+    else hackLog('> NO DUDS FOUND.');
+  }
+};
+
+function hackHoverSfx(){playTone&&playTone(1200,'square',0.05,0.01);}
+
+function triggerHackLockout(){
+  showScreen('s-lockout');
+  let end=Date.now()+5*60*1000;
+  clearInterval(lockoutInterval);
+  lockoutInterval=setInterval(()=>{
+    let left=end-Date.now();
+    if(left<=0){clearInterval(lockoutInterval);showScreen('s-dash');cancelHack();}
+    else{let m=Math.floor(left/60000);let s=(Math.floor((left%60000)/1000)+'').padStart(2,'0');document.getElementById('lockout-timer').innerText=m+':'+s;}
+  },1000);
+}
+
+// ===== AUDIO SFX =====
+let audioCtx=null;
+function initAudio(){if(audioCtx)return;audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();}
+document.addEventListener('click',initAudio,{once:true});
+function playTone(freq,type,dur,vol){
+  if(!audioCtx)return;
+  const o=audioCtx.createOscillator();const g=audioCtx.createGain();
+  o.type=type;o.frequency.setValueAtTime(freq,audioCtx.currentTime);
+  g.gain.setValueAtTime(vol,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+dur);
+  o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+dur);
+}
+
+// ===== MISC =====
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    document.querySelectorAll('.modal-bg.open').forEach(m=>m.classList.remove('open'));
+  }
+});
+</script>
+</body>
+</html>
