@@ -7,7 +7,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
 :root{--tc:#1ae23b;--bg:#080a08;--tc-dim:rgba(26,226,59,0.45);--tc-bg:rgba(26,226,59,0.08);}
@@ -610,8 +609,9 @@ bgMusic.addEventListener('timeupdate',()=>{
   document.getElementById('m-time').innerText=ft(bgMusic.currentTime)+' / '+ft(bgMusic.duration);
 });
 
-// ===== IMAGE UPLOAD =====
-const storage=firebase.storage();
+// ===== IMAGE UPLOAD (CLOUDINARY) =====
+const CLOUDINARY_CLOUD='doctmfqko';
+const CLOUDINARY_PRESET='codex-images';
 let imgInsertCallback=null;
 
 function openImgUpload(){
@@ -619,7 +619,7 @@ function openImgUpload(){
   document.getElementById('img-url-input').value='';
   document.getElementById('img-upload-progress').style.display='none';
   document.getElementById('img-upload-bar').style.width='0%';
-  // Default callback: add a new image block at end
+  document.getElementById('img-upload-status').innerText='UPLOADING...';
   imgInsertCallback=function(url){
     addBlockAt('image',editorBlocks.length);
     const newBlock=editorBlocks[editorBlocks.length-1];
@@ -636,20 +636,12 @@ function openImgUpload(){
     }
   };
 }
-function insertImgTagToEditor(url){
-  const ta=document.getElementById('editor-raw');
-  const pos=ta.selectionStart||ta.value.length;
-  const tag='\n[IMAGE:'+url+']\n';
-  ta.value=ta.value.slice(0,pos)+tag+ta.value.slice(pos);
-  ta.selectionStart=ta.selectionEnd=pos+tag.length;
-  ta.focus();
-  livePreview();
-  closeModal('img-upload-modal');
-}
+
 function insertImgFromUrl(){
   const url=document.getElementById('img-url-input').value.trim();
   if(!url){document.getElementById('img-err').innerText='ENTER A URL';return;}
-  insertImgTagToEditor(url);
+  if(imgInsertCallback)imgInsertCallback(url);
+  else closeModal('img-upload-modal');
 }
 
 // Drag & drop
@@ -665,28 +657,39 @@ dropZone.addEventListener('drop',e=>{
 function handleImgFile(file){
   if(!file){document.getElementById('img-err').innerText='NO FILE SELECTED';return;}
   if(!file.type.startsWith('image/')){document.getElementById('img-err').innerText='FILE MUST BE AN IMAGE';return;}
-  if(file.size>8*1024*1024){document.getElementById('img-err').innerText='IMAGE TOO LARGE (MAX 8MB)';return;}
-  if(!currentUser){document.getElementById('img-err').innerText='NOT LOGGED IN';return;}
-  const ext=file.name.split('.').pop()||'png';
-  const path='images/'+currentUser.uid+'/'+Date.now()+'.'+ext;
-  const ref=storage.ref(path);
-  const task=ref.put(file);
+  if(file.size>10*1024*1024){document.getElementById('img-err').innerText='IMAGE TOO LARGE (MAX 10MB)';return;}
+  const formData=new FormData();
+  formData.append('file',file);
+  formData.append('upload_preset',CLOUDINARY_PRESET);
   document.getElementById('img-upload-progress').style.display='block';
   document.getElementById('img-err').innerText='';
-  task.on('state_changed',
-    snap=>{
-      const pct=Math.round((snap.bytesTransferred/snap.totalBytes)*100);
+  document.getElementById('img-upload-bar').style.width='0%';
+  document.getElementById('img-upload-status').innerText='UPLOADING...';
+  const xhr=new XMLHttpRequest();
+  xhr.open('POST','https://api.cloudinary.com/v1_1/'+CLOUDINARY_CLOUD+'/image/upload');
+  xhr.upload.onprogress=function(e){
+    if(e.lengthComputable){
+      const pct=Math.round((e.loaded/e.total)*100);
       document.getElementById('img-upload-bar').style.width=pct+'%';
       document.getElementById('img-upload-status').innerText='UPLOADING... '+pct+'%';
-    },
-    err=>{document.getElementById('img-err').innerText='UPLOAD FAILED: '+err.message.toUpperCase();document.getElementById('img-upload-progress').style.display='none';},
-    ()=>{
-      task.snapshot.ref.getDownloadURL().then(url=>{
-        document.getElementById('img-upload-status').innerText='UPLOAD COMPLETE';
-        if(imgInsertCallback)imgInsertCallback(url);
-      });
     }
-  );
+  };
+  xhr.onload=function(){
+    if(xhr.status===200){
+      const res=JSON.parse(xhr.responseText);
+      document.getElementById('img-upload-status').innerText='UPLOAD COMPLETE';
+      document.getElementById('img-upload-bar').style.width='100%';
+      if(imgInsertCallback)imgInsertCallback(res.secure_url);
+    } else {
+      document.getElementById('img-err').innerText='UPLOAD FAILED: '+xhr.status;
+      document.getElementById('img-upload-progress').style.display='none';
+    }
+  };
+  xhr.onerror=function(){
+    document.getElementById('img-err').innerText='NETWORK ERROR — CHECK CONNECTION';
+    document.getElementById('img-upload-progress').style.display='none';
+  };
+  xhr.send(formData);
 }
 
 // ===== AUTH =====
