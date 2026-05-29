@@ -123,6 +123,9 @@ hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
 #s-lockout{flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:2rem;text-shadow:0 0 10px var(--tc);animation:slowBlink 2s infinite;}
 /* Misc */
 #sysinfo{position:fixed;top:10px;left:16px;z-index:200;font-size:0.95rem;text-shadow:0 0 4px var(--tc);pointer-events:none;}
+#sysinfo.hidden{display:none;}
+.topbar-clock{font-size:1.1rem;letter-spacing:2px;text-shadow:0 0 6px var(--tc);}
+.topbar-sysinfo{display:flex;flex-direction:column;line-height:1.25;}
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:5000;align-items:center;justify-content:center;}
 .modal-bg.open{display:flex;}
 .modal{background:var(--bg);border:2px solid var(--tc);padding:1.5rem;max-width:520px;width:90%;max-height:80vh;overflow-y:auto;position:relative;}
@@ -184,7 +187,13 @@ hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
 <!-- DASHBOARD -->
 <div class="screen" id="s-dash">
   <div class="topbar">
-    <span class="topbar-title">CODEX ARCHIVE</span>
+    <div class="topbar-sysinfo">
+      <span class="topbar-clock" id="tb-clk-time"></span>
+      <span style="font-size:0.75rem;color:var(--tc-dim);" id="tb-clk-date"></span>
+      <span style="font-size:0.72rem;color:var(--tc-dim);" id="tb-clk-tz"></span>
+      <span style="font-size:0.72rem;color:var(--tc-dim);">UPLINK: <span id="tb-ip"></span> &nbsp;|&nbsp; HOST: <span id="tb-host"></span></span>
+    </div>
+    <span class="topbar-title" style="margin:0 auto;">CODEX ARCHIVE</span>
     <span id="topbar-user" style="color:var(--tc-dim);font-size:0.95rem;"></span>
     <button class="btn-ghost" onclick="openNewDoc()">+ NEW FILE</button>
     <button class="btn-ghost" onclick="doLogout()">LOGOUT</button>
@@ -411,20 +420,31 @@ const BPAIRS={'(':')','{':'}','[':']','<':'>'};
   const fakeOct=()=>Math.floor(Math.random()*254)+1;
   const ip='192.168.'+fakeOct()+'.'+fakeOct();
   const hosts=['ROBCO-NODE-'+Math.floor(Math.random()*900+100),'BOS-RELAY-'+Math.floor(Math.random()*99+1),'VAULT-TEC-SRV'+Math.floor(Math.random()*9+1),'NCRCF-UPLINK-'+Math.floor(Math.random()*50+1)];
+  const host=hosts[Math.floor(Math.random()*hosts.length)];
   document.getElementById('fake-ip').innerText=ip;
-  document.getElementById('fake-host').innerText=hosts[Math.floor(Math.random()*hosts.length)];
+  document.getElementById('fake-host').innerText=host;
+  // Also seed topbar copies
+  const tbIp=document.getElementById('tb-ip');
+  const tbHost=document.getElementById('tb-host');
+  if(tbIp)tbIp.innerText=ip;
+  if(tbHost)tbHost.innerText=host;
   const tz=Intl.DateTimeFormat().resolvedOptions().timeZone;
   const days=['SUN','MON','TUE','WED','THU','FRI','SAT'];
   const months=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  function set(id,val){const el=document.getElementById(id);if(el)el.innerText=val;}
   function tickClock(){
     const now=new Date();
     let h=now.getHours();const ampm=h>=12?'PM':'AM';h=h%12||12;
     const hStr=(h+'').padStart(2,'0');
     const mStr=(now.getMinutes()+'').padStart(2,'0');
     const sStr=(now.getSeconds()+'').padStart(2,'0');
-    document.getElementById('clk-time').innerText=hStr+':'+mStr+':'+sStr+' '+ampm;
-    document.getElementById('clk-date').innerText=days[now.getDay()]+' '+months[now.getMonth()]+' '+(now.getDate()+'').padStart(2,'0')+' '+now.getFullYear();
-    document.getElementById('clk-tz').innerText='TZ: '+tz.toUpperCase();
+    const timeStr=hStr+':'+mStr+':'+sStr+' '+ampm;
+    const dateStr=days[now.getDay()]+' '+months[now.getMonth()]+' '+(now.getDate()+'').padStart(2,'0')+' '+now.getFullYear();
+    const tzStr='TZ: '+tz.toUpperCase();
+    // Auth screen sysinfo
+    set('clk-time',timeStr);set('clk-date',dateStr);set('clk-tz',tzStr);
+    // Topbar sysinfo
+    set('tb-clk-time',timeStr);set('tb-clk-date',dateStr);set('tb-clk-tz',tzStr);
   }
   tickClock();
   setInterval(tickClock,1000);
@@ -577,6 +597,9 @@ auth.onAuthStateChanged(user=>{
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  // Hide floating sysinfo on all screens except auth
+  const si=document.getElementById('sysinfo');
+  if(si)si.classList.toggle('hidden',id!=='s-auth');
 }
 
 // ===== DOCS LOADING =====
