@@ -993,10 +993,10 @@ function parseMarkup(raw){
       const url=parts[0].trim();
       let caption='',width=100;
       parts.slice(1).forEach(p=>{
-        if(/^w\d+$/.test(p.trim()))width=parseInt(p.trim().slice(1));
-        else caption=p.trim();
+        if(/^w:\d+$/.test(p.trim()))width=parseInt(p.trim().slice(2));
+        else if(p.trim())caption=p.trim();
       });
-      const wStyle=width<100?'max-width:'+width+'%;':'max-width:100%;';
+      const wStyle='max-width:'+width+'%;';
       html+=`<img class="terminal-img" src="${escH(url)}" alt="${escH(caption)}" style="${wStyle}" onerror="this.style.border='2px dashed #dc143c';this.alt='IMAGE UNAVAILABLE'">`;
       if(caption)html+=`<div style="font-size:0.85rem;color:var(--tc-dim);margin-bottom:8px;">${escH(caption)}</div>`;
       else html+='<br>';
@@ -1132,7 +1132,11 @@ function serializeBlocks(blocks){
       case 'addendum':return'[ADDENDUM:'+d.text+']';
       case 'alert':   return'[ALERT:'+d.text+']';
       case 'music':   return'[MUSIC:'+d.url+']';
-      case 'image':   return d.caption?'[IMAGE:'+d.url+'|'+d.caption+'|w'+(d.width||100)+']':'[IMAGE:'+d.url+'|w'+(d.width||100)+']';
+      case 'image':{
+        const w=d.width&&d.width!==100?'|w:'+d.width:'';
+        const c=d.caption?'|'+d.caption:'';
+        return'[IMAGE:'+d.url+c+w+']';
+      }
       case 'special': return'[SPECIAL:'+d.stats.map(s=>s.name+':'+s.val).join(' ')+']';
       case 'table':{
         const hdr=d.headers.join(',');
@@ -1165,8 +1169,8 @@ function parseToBlocks(raw){
       const url=parts[0]||'';
       let caption='',width=100;
       parts.slice(1).forEach(p=>{
-        if(/^w\d+$/.test(p))width=parseInt(p.slice(1));
-        else caption=p;
+        if(/^w:\d+$/.test(p.trim()))width=parseInt(p.trim().slice(2));
+        else if(p.trim())caption=p.trim();
       });
       blocks.push(makeBlock('image',{url,caption,width}));return;
     }
@@ -1449,9 +1453,21 @@ function showBlockPicker(e,insertIdx){
   document.body.appendChild(popup);
   activePickerEl=popup;
   const rect=e.target.getBoundingClientRect();
-  let top=rect.bottom+4;let left=rect.left;
-  if(left+popup.offsetWidth>window.innerWidth)left=window.innerWidth-popup.offsetWidth-8;
+  const ph=popup.offsetHeight||220;
+  const pw=popup.offsetWidth||320;
+  // Flip above button if not enough room below
+  let top=rect.bottom+4;
+  if(top+ph>window.innerHeight-8)top=rect.top-ph-4;
+  if(top<8)top=8;
+  let left=rect.left;
+  if(left+pw>window.innerWidth-8)left=window.innerWidth-pw-8;
+  if(left<8)left=8;
   popup.style.top=top+'px';popup.style.left=left+'px';
+  // Also scroll canvas so the new block won't be hidden
+  setTimeout(()=>{
+    const canvas=document.getElementById('block-canvas');
+    if(canvas)canvas.scrollTop=canvas.scrollHeight;
+  },50);
   setTimeout(()=>{
     document.addEventListener('click',function dismiss(ev){
       if(!popup.contains(ev.target)&&ev.target!==e.target){popup.remove();activePickerEl=null;document.removeEventListener('click',dismiss);}
