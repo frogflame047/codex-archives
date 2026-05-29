@@ -172,7 +172,7 @@ hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
       <div class="field"><div class="label">PASSWORD (MIN 6)</div><input id="r-pass" type="password"></div>
       <button class="btn" style="width:100%;margin-top:4px;" onclick="doRegister()">CREATE ACCOUNT</button>
       <div style="display:flex;align-items:center;gap:8px;margin:12px 0;"><div style="flex:1;border-top:1px dashed var(--tc-dim);"></div><span style="font-size:0.85rem;color:var(--tc-dim);">OR</span><div style="flex:1;border-top:1px dashed var(--tc-dim);"></div></div>
-      <button class="btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;" onclick="doGoogleLogin()">
+      <button class="btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;" onclick="doGoogleRegister()">
         <svg width="16" height="16" viewBox="0 0 48 48" style="flex-shrink:0;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
         REGISTER WITH GOOGLE
       </button>
@@ -381,6 +381,17 @@ hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
   </div>
 </div>
 
+<!-- GOOGLE CALLSIGN MODAL -->
+<div class="modal-bg" id="google-callsign-modal">
+  <div class="modal">
+    <h3>CHOOSE YOUR CALLSIGN</h3>
+    <p style="font-size:1rem;color:var(--tc-dim);margin-bottom:12px;">GOOGLE ACCOUNT VERIFIED. SET YOUR DISPLAY NAME TO COMPLETE REGISTRATION.</p>
+    <div class="field"><div class="label">CALLSIGN (DISPLAY NAME)</div><input id="gc-name" maxlength="20" autocomplete="off" onkeydown="if(event.key==='Enter')completeGoogleRegister()"></div>
+    <div id="gc-err" style="color:#dc143c;font-size:0.95rem;min-height:16px;margin-bottom:8px;"></div>
+    <button class="btn" style="width:100%;" onclick="completeGoogleRegister()">CONFIRM CALLSIGN</button>
+  </div>
+</div>
+
 <script>
 const firebaseConfig={apiKey:"AIzaSyDmUZ5mw9QPZFjlgujcJF8lK0Hg5lxeDKg",authDomain:"terminal-cracker-v2077.firebaseapp.com",databaseURL:"https://terminal-cracker-v2077-default-rtdb.firebaseio.com",projectId:"terminal-cracker-v2077",storageBucket:"terminal-cracker-v2077.firebasestorage.app",messagingSenderId:"772662562385",appId:"1:772662562385:web:ce27ffa901d0413b94b270"};
 firebase.initializeApp(firebaseConfig);
@@ -459,25 +470,98 @@ function doRegister(){
     return db.ref('users/'+cred.user.uid).set({name,email:e,createdAt:Date.now()});
   }).catch(err=>setAuthErr('ERROR: '+err.message.toUpperCase()));
 }
+// Holds the Google credential temporarily during registration callsign step
+let pendingGoogleUser=null;
+
 function doGoogleLogin(){
+  // LOGIN path — Google account must already have a profile
   const provider=new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider).catch(err=>setAuthErr('ERROR: '+err.message.toUpperCase()));
+  auth.signInWithPopup(provider).then(result=>{
+    const user=result.user;
+    return db.ref('users/'+user.uid).once('value').then(snap=>{
+      if(!snap.exists()){
+        // No profile = not registered — sign them back out and show error
+        return auth.signOut().then(()=>{
+          setAuthErr('NO ACCOUNT FOUND. USE "REGISTER WITH GOOGLE" TO CREATE ONE.');
+        });
+      }
+      // Profile exists — onAuthStateChanged handles the rest
+    });
+  }).catch(err=>setAuthErr('ERROR: '+err.message.toUpperCase()));
 }
+
+function doGoogleRegister(){
+  // REGISTER path — Google account must NOT already have a profile
+  const provider=new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).then(result=>{
+    const user=result.user;
+    return db.ref('users/'+user.uid).once('value').then(snap=>{
+      if(snap.exists()){
+        // Already registered — just log them in normally
+        return; // onAuthStateChanged will pick it up
+      }
+      // New user — sign out temporarily, hold uid, show callsign modal
+      pendingGoogleUser=user;
+      return auth.signOut().then(()=>{
+        document.getElementById('gc-name').value='';
+        document.getElementById('gc-err').innerText='';
+        openModal('google-callsign-modal');
+        setTimeout(()=>document.getElementById('gc-name').focus(),100);
+      });
+    });
+  }).catch(err=>setAuthErr('ERROR: '+err.message.toUpperCase()));
+}
+
+function completeGoogleRegister(){
+  const name=document.getElementById('gc-name').value.trim().toUpperCase();
+  if(!name||name.length<2){
+    document.getElementById('gc-err').innerText='CALLSIGN REQUIRED (MIN 2 CHARS)';
+    return;
+  }
+  if(!pendingGoogleUser){
+    document.getElementById('gc-err').innerText='SESSION EXPIRED. PLEASE TRY AGAIN.';
+    closeModal('google-callsign-modal');
+    return;
+  }
+  // Re-authenticate with Google to restore the session
+  const provider=new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).then(result=>{
+    const user=result.user;
+    // Verify it's the same Google account
+    if(user.uid!==pendingGoogleUser.uid){
+      return auth.signOut().then(()=>{
+        document.getElementById('gc-err').innerText='ACCOUNT MISMATCH. PLEASE TRY AGAIN.';
+        pendingGoogleUser=null;
+        closeModal('google-callsign-modal');
+      });
+    }
+    return db.ref('users/'+user.uid).set({
+      name,
+      email:user.email,
+      createdAt:Date.now(),
+      authProvider:'google'
+    }).then(()=>{
+      pendingGoogleUser=null;
+      closeModal('google-callsign-modal');
+      // onAuthStateChanged will fire and complete login
+    });
+  }).catch(err=>{
+    document.getElementById('gc-err').innerText='ERROR: '+err.message.toUpperCase();
+  });
+}
+
 function doLogout(){auth.signOut();}
 
 auth.onAuthStateChanged(user=>{
   currentUser=user;
   if(user){
-    const userRef=db.ref('users/'+user.uid);
-    userRef.once('value').then(snap=>{
-      if(snap.exists()){
-        userProfile=snap.val();
-      } else {
-        // First Google sign-in — auto-create profile from Google account data
-        const name=(user.displayName||user.email.split('@')[0]).toUpperCase().slice(0,20);
-        userProfile={name,email:user.email,createdAt:Date.now()};
-        userRef.set(userProfile);
+    db.ref('users/'+user.uid).once('value').then(snap=>{
+      if(!snap.exists()){
+        // Authenticated but no profile — sign out and wait (registration in progress)
+        auth.signOut();
+        return;
       }
+      userProfile=snap.val();
       document.getElementById('topbar-user').innerText='USER: '+userProfile.name;
       showScreen('s-dash');
       loadDocs();
