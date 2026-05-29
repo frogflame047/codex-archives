@@ -67,7 +67,7 @@ hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
 #doc-view{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 .doc-toolbar{display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--tc);flex-shrink:0;flex-wrap:wrap;font-size:0.95rem;}
 .doc-toolbar span{color:var(--tc-dim);}
-.doc-content-wrap{flex:1;overflow-y:auto;padding:16px 24px;text-shadow:0 0 4px var(--tc);}
+.doc-content-wrap{flex:1;overflow-y:auto;overflow-x:hidden;padding:16px 24px;text-shadow:0 0 4px var(--tc);}
 /* RENDERED DOC */
 .rdr h1{font-size:2rem;letter-spacing:2px;margin-bottom:6px;}
 .rdr h2{font-size:1.4rem;background:var(--tc);color:var(--bg);padding:2px 10px;display:inline-block;margin:16px 0 8px;}
@@ -87,6 +87,9 @@ hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
 .rdr .special-stat span{display:block;font-size:1.8rem;}
 .rdr .terminal-img{max-width:100%;height:auto;border:2px solid var(--tc);margin:8px 0;opacity:0.88;display:block;}
 .rdr .img-grid{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:8px 0;}
+.b-img-resize{display:flex;align-items:center;gap:8px;margin-top:4px;font-size:0.8rem;color:var(--tc-dim);}
+.b-img-resize input[type=range]{flex:1;accent-color:var(--tc);cursor:pointer;}
+.b-img-resize span{min-width:36px;text-align:right;}
 .rdr .doc-header{text-align:center;border-bottom:2px dashed var(--tc);margin-bottom:16px;padding-bottom:12px;}
 .rdr iframe.page-music{display:none;}
 @keyframes slowBlink{0%,100%{opacity:1;}50%{opacity:0.45;}}
@@ -985,8 +988,18 @@ function parseMarkup(raw){
     line=line.trimEnd();
     // Special tags
     if(/^\[IMAGE:(.+?)\]$/i.test(line)){
-      const m=line.match(/^\[IMAGE:(.+?)(?:\|(.+?))?\]$/i);
-      html+=`<img class="terminal-img" src="${escH(m[1].trim())}" alt="${escH(m[2]||'')}" onerror="this.style.border='2px dashed #dc143c';this.alt='IMAGE UNAVAILABLE'"><br>`;
+      const m=line.match(/^\[IMAGE:(.+?)\]$/i);
+      const parts=m[1].split('|');
+      const url=parts[0].trim();
+      let caption='',width=100;
+      parts.slice(1).forEach(p=>{
+        if(/^w\d+$/.test(p.trim()))width=parseInt(p.trim().slice(1));
+        else caption=p.trim();
+      });
+      const wStyle=width<100?'max-width:'+width+'%;':'max-width:100%;';
+      html+=`<img class="terminal-img" src="${escH(url)}" alt="${escH(caption)}" style="${wStyle}" onerror="this.style.border='2px dashed #dc143c';this.alt='IMAGE UNAVAILABLE'">`;
+      if(caption)html+=`<div style="font-size:0.85rem;color:var(--tc-dim);margin-bottom:8px;">${escH(caption)}</div>`;
+      else html+='<br>';
       return;
     }
     if(/^\[IMGRID:(.+?)\]$/i.test(line)){
@@ -1119,7 +1132,7 @@ function serializeBlocks(blocks){
       case 'addendum':return'[ADDENDUM:'+d.text+']';
       case 'alert':   return'[ALERT:'+d.text+']';
       case 'music':   return'[MUSIC:'+d.url+']';
-      case 'image':   return d.caption?'[IMAGE:'+d.url+'|'+d.caption+']':'[IMAGE:'+d.url+']';
+      case 'image':   return d.caption?'[IMAGE:'+d.url+'|'+d.caption+'|w'+(d.width||100)+']':'[IMAGE:'+d.url+'|w'+(d.width||100)+']';
       case 'special': return'[SPECIAL:'+d.stats.map(s=>s.name+':'+s.val).join(' ')+']';
       case 'table':{
         const hdr=d.headers.join(',');
@@ -1147,8 +1160,15 @@ function parseToBlocks(raw){
     if(/^\[ALERT:(.+?)\]$/i.test(line)){const m=line.match(/^\[ALERT:(.+?)\]$/i);blocks.push(makeBlock('alert',{text:m[1]}));return;}
     if(/^\[MUSIC:(.+?)\]$/i.test(line)){const m=line.match(/^\[MUSIC:(.+?)\]$/i);blocks.push(makeBlock('music',{url:m[1]}));return;}
     if(/^\[IMAGE:(.+?)\]$/i.test(line)){
-      const m=line.match(/^\[IMAGE:(.+?)(?:\|(.+?))?\]$/i);
-      blocks.push(makeBlock('image',{url:m[1]||'',caption:m[2]||''}));return;
+      const m=line.match(/^\[IMAGE:(.+?)\]$/i);
+      const parts=m[1].split('|');
+      const url=parts[0]||'';
+      let caption='',width=100;
+      parts.slice(1).forEach(p=>{
+        if(/^w\d+$/.test(p))width=parseInt(p.slice(1));
+        else caption=p;
+      });
+      blocks.push(makeBlock('image',{url,caption,width}));return;
     }
     if(/^\[SPECIAL:(.+?)\]$/i.test(line)){
       const m=line.match(/^\[SPECIAL:(.+?)\]$/i);
@@ -1296,17 +1316,27 @@ function buildBlockInner(block){
       const capInp=document.createElement('input');
       capInp.className='b-img-input';capInp.value=d.caption||'';capInp.placeholder='CAPTION (OPTIONAL)';
       capInp.oninput=()=>{d.caption=capInp.value;};
+      // Width slider
+      if(!d.width)d.width=100;
+      const resizeRow=document.createElement('div');resizeRow.className='b-img-resize';
+      const resizeLbl=document.createElement('span');resizeLbl.innerText='WIDTH:';
+      const resizeSlider=document.createElement('input');
+      resizeSlider.type='range';resizeSlider.min=10;resizeSlider.max=100;resizeSlider.step=5;resizeSlider.value=d.width;
+      const resizeVal=document.createElement('span');resizeVal.innerText=d.width+'%';
+      resizeSlider.oninput=()=>{d.width=parseInt(resizeSlider.value);resizeVal.innerText=d.width+'%';preview.style.maxWidth=d.width+'%';};
+      if(d.url)preview.style.maxWidth=d.width+'%';
+      resizeRow.appendChild(resizeLbl);resizeRow.appendChild(resizeSlider);resizeRow.appendChild(resizeVal);
       const uploadBtn=document.createElement('button');
       uploadBtn.className='btn-ghost';uploadBtn.style.cssText='font-size:0.8rem;padding:2px 8px;margin-top:4px;';
       uploadBtn.innerText='📎 UPLOAD IMAGE';
       uploadBtn.onclick=()=>{
-        imgInsertCallback=(url)=>{d.url=url;urlInp.value=url;preview.src=url;preview.style.display='block';closeModal('img-upload-modal');};
+        imgInsertCallback=(url)=>{d.url=url;urlInp.value=url;preview.src=url;preview.style.display='block';preview.style.maxWidth=d.width+'%';closeModal('img-upload-modal');};
         document.getElementById('img-err').innerText='';
         document.getElementById('img-url-input').value='';
         document.getElementById('img-upload-progress').style.display='none';
         openModal('img-upload-modal');
       };
-      wrap.appendChild(lbl);wrap.appendChild(preview);wrap.appendChild(urlInp);wrap.appendChild(capInp);wrap.appendChild(uploadBtn);break;
+      wrap.appendChild(lbl);wrap.appendChild(preview);wrap.appendChild(urlInp);wrap.appendChild(capInp);wrap.appendChild(resizeRow);wrap.appendChild(uploadBtn);break;
     }
     case 'special':{
       wrap.className='b-special-wrap';
