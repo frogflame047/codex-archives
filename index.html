@@ -205,25 +205,30 @@ hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
       <div class="auth-tab" id="tab-reg" onclick="switchAuthTab('reg')">REGISTER</div>
     </div>
     <div id="auth-login">
-      <div class="field"><div class="label">EMAIL</div><input id="l-email" type="email" autocomplete="off"></div>
+      <div class="field"><div class="label">CALLSIGN</div><input id="l-callsign" type="text" autocomplete="off" maxlength="20"></div>
       <div class="field"><div class="label">PASSWORD</div><input id="l-pass" type="password" onkeydown="if(event.key==='Enter')doLogin()"></div>
       <button class="btn" style="width:100%;margin-top:4px;" onclick="doLogin()">AUTHENTICATE</button>
-      <div style="display:flex;align-items:center;gap:8px;margin:12px 0;"><div style="flex:1;border-top:1px dashed var(--tc-dim);"></div><span style="font-size:0.85rem;color:var(--tc-dim);">OR</span><div style="flex:1;border-top:1px dashed var(--tc-dim);"></div></div>
-      <button class="btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;" onclick="doGoogleLogin()">
-        <svg width="16" height="16" viewBox="0 0 48 48" style="flex-shrink:0;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-        SIGN IN WITH GOOGLE
-      </button>
+      <div id="google-login-section">
+        <div style="display:flex;align-items:center;gap:8px;margin:12px 0;"><div style="flex:1;border-top:1px dashed var(--tc-dim);"></div><span style="font-size:0.85rem;color:var(--tc-dim);">OR</span><div style="flex:1;border-top:1px dashed var(--tc-dim);"></div></div>
+        <button id="btn-google-login" class="btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;" onclick="doGoogleLogin()">
+          <svg width="16" height="16" viewBox="0 0 48 48" style="flex-shrink:0;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+          SIGN IN WITH GOOGLE
+        </button>
+        <div style="text-align:center;margin-top:10px;font-size:0.85rem;color:var(--tc-dim);">GOOGLE ACCOUNT? <span style="color:var(--tc);cursor:pointer;text-decoration:underline;" onclick="openSetPasswordModal()">SET AN IN-GAME PASSWORD</span></div>
+      </div>
     </div>
     <div id="auth-reg" style="display:none;">
-      <div class="field"><div class="label">DISPLAY NAME (CALLSIGN)</div><input id="r-name" maxlength="20" autocomplete="off"></div>
+      <div class="field"><div class="label">CALLSIGN (UNIQUE — USED TO LOG IN)</div><input id="r-name" maxlength="20" autocomplete="off" placeholder=""></div>
       <div class="field"><div class="label">EMAIL</div><input id="r-email" type="email" autocomplete="off"></div>
       <div class="field"><div class="label">PASSWORD (MIN 6)</div><input id="r-pass" type="password"></div>
       <button class="btn" style="width:100%;margin-top:4px;" onclick="doRegister()">CREATE ACCOUNT</button>
-      <div style="display:flex;align-items:center;gap:8px;margin:12px 0;"><div style="flex:1;border-top:1px dashed var(--tc-dim);"></div><span style="font-size:0.85rem;color:var(--tc-dim);">OR</span><div style="flex:1;border-top:1px dashed var(--tc-dim);"></div></div>
-      <button class="btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;" onclick="doGoogleRegister()">
-        <svg width="16" height="16" viewBox="0 0 48 48" style="flex-shrink:0;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-        REGISTER WITH GOOGLE
-      </button>
+      <div id="google-register-section">
+        <div style="display:flex;align-items:center;gap:8px;margin:12px 0;"><div style="flex:1;border-top:1px dashed var(--tc-dim);"></div><span style="font-size:0.85rem;color:var(--tc-dim);">OR</span><div style="flex:1;border-top:1px dashed var(--tc-dim);"></div></div>
+        <button id="btn-google-register" class="btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;" onclick="doGoogleRegister()">
+          <svg width="16" height="16" viewBox="0 0 48 48" style="flex-shrink:0;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+          REGISTER WITH GOOGLE
+        </button>
+      </div>
     </div>
     <div id="auth-err" style="color:#dc143c;margin-top:10px;font-size:0.95rem;text-align:center;min-height:20px;"></div>
   </div>
@@ -240,6 +245,7 @@ hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
     </div>
     <span class="topbar-title" style="margin:0 auto;">CODEX ARCHIVE</span>
     <span id="topbar-user" style="color:var(--tc-dim);font-size:0.95rem;"></span>
+    <button id="topbar-setpw-btn" class="btn-ghost" onclick="openSetPasswordModal()" style="display:none;" title="LINK A PASSWORD TO YOUR GOOGLE ACCOUNT">SET PASSWORD</button>
     <button class="btn-ghost" onclick="openNewDoc()">+ NEW FILE</button>
     <button class="btn-ghost" onclick="doLogout()">LOGOUT</button>
   </div>
@@ -428,11 +434,31 @@ hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
 <!-- GOOGLE CALLSIGN MODAL -->
 <div class="modal-bg" id="google-callsign-modal">
   <div class="modal">
-    <h3>CHOOSE YOUR CALLSIGN</h3>
-    <p style="font-size:1rem;color:var(--tc-dim);margin-bottom:12px;">GOOGLE ACCOUNT VERIFIED. SET YOUR DISPLAY NAME TO COMPLETE REGISTRATION.</p>
-    <div class="field"><div class="label">CALLSIGN (DISPLAY NAME)</div><input id="gc-name" maxlength="20" autocomplete="off" onkeydown="if(event.key==='Enter')completeGoogleRegister()"></div>
+    <h3>COMPLETE REGISTRATION</h3>
+    <p style="font-size:1rem;color:var(--tc-dim);margin-bottom:12px;">GOOGLE ACCOUNT VERIFIED. SET YOUR CALLSIGN AND AN IN-GAME PASSWORD SO YOU CAN LOG IN AT TERMINALS.</p>
+    <div class="field"><div class="label">CALLSIGN (UNIQUE — USED TO LOG IN)</div><input id="gc-name" maxlength="20" autocomplete="off"></div>
+    <div class="field"><div class="label">IN-GAME PASSWORD (MIN 6)</div><input id="gc-pass" type="password"></div>
+    <div class="field"><div class="label">CONFIRM PASSWORD</div><input id="gc-pass2" type="password" onkeydown="if(event.key==='Enter')completeGoogleRegister()"></div>
     <div id="gc-err" style="color:#dc143c;font-size:0.95rem;min-height:16px;margin-bottom:8px;"></div>
-    <button class="btn" style="width:100%;" onclick="completeGoogleRegister()">CONFIRM CALLSIGN</button>
+    <button class="btn" style="width:100%;" onclick="completeGoogleRegister()">CONFIRM & COMPLETE REGISTRATION</button>
+  </div>
+</div>
+
+<!-- SET IN-GAME PASSWORD MODAL (for Google-only accounts) -->
+<div class="modal-bg" id="set-password-modal">
+  <div class="modal">
+    <h3>SET IN-GAME PASSWORD</h3>
+    <p style="font-size:1rem;color:var(--tc-dim);margin-bottom:4px;">ENTER YOUR GOOGLE ACCOUNT EMAIL AND CHOOSE A PASSWORD.</p>
+    <p style="font-size:0.85rem;color:var(--tc-dim);margin-bottom:12px;">THIS LINKS A PASSWORD TO YOUR ACCOUNT SO YOU CAN SIGN IN WITHOUT THE GOOGLE BUTTON.</p>
+    <div class="field"><div class="label">GOOGLE EMAIL</div><input id="sp-email" type="email" autocomplete="off"></div>
+    <div class="field"><div class="label">NEW PASSWORD (MIN 6)</div><input id="sp-pass" type="password"></div>
+    <div class="field"><div class="label">CONFIRM PASSWORD</div><input id="sp-pass2" type="password" onkeydown="if(event.key==='Enter')doSetPassword()"></div>
+    <div id="sp-err" style="color:#dc143c;font-size:0.95rem;min-height:16px;margin-bottom:8px;"></div>
+    <div id="sp-ok" style="color:var(--tc);font-size:0.95rem;min-height:16px;margin-bottom:8px;display:none;">PASSWORD SET. YOU CAN NOW LOG IN WITH EMAIL + PASSWORD.</div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn" onclick="doSetPassword()">SET PASSWORD</button>
+      <button class="btn-ghost" onclick="closeModal('set-password-modal')">CANCEL</button>
+    </div>
   </div>
 </div>
 
@@ -696,6 +722,13 @@ function handleImgFile(file){
 }
 
 // ===== AUTH =====
+// Callsign → email lookup index lives at db.ref('usernames/{callsign_uppercase}') = uid
+// This lets players log in with their callsign instead of their email.
+
+function sanitizeCallsign(raw){
+  return raw.trim().toUpperCase().replace(/[^A-Z0-9_\-]/g,'');
+}
+
 function switchAuthTab(t){
   document.getElementById('tab-login').classList.toggle('active',t==='login');
   document.getElementById('tab-reg').classList.toggle('active',t==='reg');
@@ -704,103 +737,219 @@ function switchAuthTab(t){
   document.getElementById('auth-err').innerText='';
 }
 function setAuthErr(m){document.getElementById('auth-err').innerText=m;}
+
 function doLogin(){
-  const e=document.getElementById('l-email').value.trim();
+  const callsign=sanitizeCallsign(document.getElementById('l-callsign').value);
   const p=document.getElementById('l-pass').value;
-  if(!e||!p){setAuthErr('ENTER EMAIL AND PASSWORD');return;}
-  auth.signInWithEmailAndPassword(e,p).catch(err=>setAuthErr('ERROR: '+err.message.toUpperCase()));
-}
-function doRegister(){
-  const name=document.getElementById('r-name').value.trim().toUpperCase();
-  const e=document.getElementById('r-email').value.trim();
-  const p=document.getElementById('r-pass').value;
-  if(!name||name.length<2){setAuthErr('CALLSIGN REQUIRED (MIN 2 CHARS)');return;}
-  if(!e||p.length<6){setAuthErr('VALID EMAIL AND PASSWORD (6+) REQUIRED');return;}
-  auth.createUserWithEmailAndPassword(e,p).then(cred=>{
-    return db.ref('users/'+cred.user.uid).set({name,email:e,createdAt:Date.now()});
+  if(!callsign||!p){setAuthErr('ENTER CALLSIGN AND PASSWORD');return;}
+  // Look up callsign → uid → email in DB, then sign in
+  db.ref('usernames/'+callsign).once('value').then(snap=>{
+    if(!snap.exists()){setAuthErr('CALLSIGN NOT FOUND. CHECK SPELLING OR REGISTER.');return;}
+    const uid=snap.val();
+    return db.ref('users/'+uid+'/email').once('value').then(emailSnap=>{
+      if(!emailSnap.exists()){setAuthErr('ACCOUNT DATA ERROR. CONTACT ADMIN.');return;}
+      const email=emailSnap.val();
+      return auth.signInWithEmailAndPassword(email,p).catch(err=>{
+        const code=err.code||'';
+        if(code==='auth/wrong-password'||code==='auth/invalid-credential'){
+          // Check if this is a Google-only account that hasn't set a password yet
+          auth.fetchSignInMethodsForEmail(email).then(methods=>{
+            if(methods.includes('google.com')&&!methods.includes('password')){
+              setAuthErr('GOOGLE ACCOUNT — NO PASSWORD SET. VISIT THE WEBSITE TO SET ONE FIRST.');
+            } else {
+              setAuthErr('INCORRECT PASSWORD.');
+            }
+          }).catch(()=>setAuthErr('INCORRECT PASSWORD.'));
+        } else {
+          setAuthErr('ERROR: '+err.message.toUpperCase());
+        }
+      });
+    });
   }).catch(err=>setAuthErr('ERROR: '+err.message.toUpperCase()));
 }
+
+function doRegister(){
+  const name=sanitizeCallsign(document.getElementById('r-name').value);
+  const e=document.getElementById('r-email').value.trim().toLowerCase();
+  const p=document.getElementById('r-pass').value;
+  if(!name||name.length<2){setAuthErr('CALLSIGN REQUIRED (MIN 2 CHARS, LETTERS/NUMBERS/_ ONLY)');return;}
+  if(!e||p.length<6){setAuthErr('VALID EMAIL AND PASSWORD (6+) REQUIRED');return;}
+  // Check callsign is not already taken
+  db.ref('usernames/'+name).once('value').then(snap=>{
+    if(snap.exists()){setAuthErr('CALLSIGN ALREADY TAKEN. CHOOSE ANOTHER.');return;}
+    return auth.createUserWithEmailAndPassword(e,p).then(cred=>{
+      const uid=cred.user.uid;
+      // Write user profile and callsign index atomically
+      return db.ref().update({
+        ['users/'+uid]:{name,email:e,createdAt:Date.now()},
+        ['usernames/'+name]:uid
+      });
+    });
+  }).catch(err=>setAuthErr('ERROR: '+err.message.toUpperCase()));
+}
+
 // Holds the Google credential temporarily during registration callsign step
 let pendingGoogleUser=null;
 
 function doGoogleLogin(){
-  // LOGIN path — Google account must already have a profile
   const provider=new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider).then(result=>{
     const user=result.user;
     return db.ref('users/'+user.uid).once('value').then(snap=>{
       if(!snap.exists()){
-        // No profile = not registered — sign them back out and show error
         return auth.signOut().then(()=>{
           setAuthErr('NO ACCOUNT FOUND. USE "REGISTER WITH GOOGLE" TO CREATE ONE.');
         });
       }
-      // Profile exists — onAuthStateChanged handles the rest
     });
   }).catch(err=>setAuthErr('ERROR: '+err.message.toUpperCase()));
 }
 
 function doGoogleRegister(){
-  // REGISTER path — Google account must NOT already have a profile
   const provider=new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider).then(result=>{
     const user=result.user;
     return db.ref('users/'+user.uid).once('value').then(snap=>{
       if(snap.exists()){
-        // Already registered — just log them in normally
-        return; // onAuthStateChanged will pick it up
+        // Already fully registered — onAuthStateChanged picks it up
+        return;
       }
-      // New user — sign out temporarily, hold uid, show callsign modal
+      // Keep the session alive — we need it for linkWithCredential below.
+      // Store the user reference and open the callsign+password modal.
       pendingGoogleUser=user;
-      return auth.signOut().then(()=>{
-        document.getElementById('gc-name').value='';
-        document.getElementById('gc-err').innerText='';
-        openModal('google-callsign-modal');
-        setTimeout(()=>document.getElementById('gc-name').focus(),100);
-      });
+      document.getElementById('gc-name').value='';
+      document.getElementById('gc-pass').value='';
+      document.getElementById('gc-pass2').value='';
+      document.getElementById('gc-err').innerText='';
+      openModal('google-callsign-modal');
+      setTimeout(()=>document.getElementById('gc-name').focus(),100);
     });
   }).catch(err=>setAuthErr('ERROR: '+err.message.toUpperCase()));
 }
 
 function completeGoogleRegister(){
-  const name=document.getElementById('gc-name').value.trim().toUpperCase();
-  if(!name||name.length<2){
-    document.getElementById('gc-err').innerText='CALLSIGN REQUIRED (MIN 2 CHARS)';
-    return;
-  }
-  if(!pendingGoogleUser){
-    document.getElementById('gc-err').innerText='SESSION EXPIRED. PLEASE TRY AGAIN.';
+  const errEl=document.getElementById('gc-err');
+  const name=sanitizeCallsign(document.getElementById('gc-name').value);
+  const pass=document.getElementById('gc-pass').value;
+  const pass2=document.getElementById('gc-pass2').value;
+
+  if(!name||name.length<2){errEl.innerText='CALLSIGN REQUIRED (MIN 2 CHARS, LETTERS/NUMBERS/_ ONLY)';return;}
+  if(pass.length<6){errEl.innerText='PASSWORD MUST BE AT LEAST 6 CHARACTERS';return;}
+  if(pass!==pass2){errEl.innerText='PASSWORDS DO NOT MATCH';return;}
+
+  if(!pendingGoogleUser||!auth.currentUser||auth.currentUser.uid!==pendingGoogleUser.uid){
+    errEl.innerText='SESSION EXPIRED. PLEASE CLOSE AND TRY REGISTERING AGAIN.';
+    pendingGoogleUser=null;
     closeModal('google-callsign-modal');
     return;
   }
-  // Re-authenticate with Google to restore the session
-  const provider=new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider).then(result=>{
-    const user=result.user;
-    // Verify it's the same Google account
-    if(user.uid!==pendingGoogleUser.uid){
-      return auth.signOut().then(()=>{
-        document.getElementById('gc-err').innerText='ACCOUNT MISMATCH. PLEASE TRY AGAIN.';
-        pendingGoogleUser=null;
-        closeModal('google-callsign-modal');
+
+  errEl.innerText='VERIFYING CALLSIGN...';
+
+  db.ref('usernames/'+name).once('value').then(snap=>{
+    if(snap.exists()){errEl.innerText='CALLSIGN ALREADY TAKEN. CHOOSE ANOTHER.';return;}
+
+    errEl.innerText='LINKING CREDENTIALS...';
+
+    // Session is live from doGoogleRegister — link email+password directly, no second popup.
+    const credential=firebase.auth.EmailAuthProvider.credential(auth.currentUser.email,pass);
+    return auth.currentUser.linkWithCredential(credential).then(()=>{
+      // Write profile + callsign index atomically
+      return db.ref().update({
+        ['users/'+pendingGoogleUser.uid]:{
+          name,
+          email:pendingGoogleUser.email,
+          createdAt:Date.now(),
+          authProvider:'google'
+        },
+        ['usernames/'+name]:pendingGoogleUser.uid
       });
-    }
-    return db.ref('users/'+user.uid).set({
-      name,
-      email:user.email,
-      createdAt:Date.now(),
-      authProvider:'google'
     }).then(()=>{
       pendingGoogleUser=null;
       closeModal('google-callsign-modal');
-      // onAuthStateChanged will fire and complete login
+      // onAuthStateChanged fires and completes login
     });
   }).catch(err=>{
-    document.getElementById('gc-err').innerText='ERROR: '+err.message.toUpperCase();
+    errEl.innerText='ERROR: '+err.message.toUpperCase();
   });
 }
 
 function doLogout(){auth.signOut();}
+
+// ===== SET IN-GAME PASSWORD (for Google-only accounts) =====
+function openSetPasswordModal(){
+  // Pre-fill email from currently signed-in user if available, otherwise leave blank
+  const preEmail=auth.currentUser?auth.currentUser.email:'';
+  document.getElementById('sp-email').value=preEmail;
+  document.getElementById('sp-pass').value='';
+  document.getElementById('sp-pass2').value='';
+  document.getElementById('sp-err').innerText='';
+  document.getElementById('sp-ok').style.display='none';
+  openModal('set-password-modal');
+  setTimeout(()=>document.getElementById(preEmail?'sp-pass':'sp-email').focus(),100);
+}
+
+function doSetPassword(){
+  const email=document.getElementById('sp-email').value.trim();
+  const pass=document.getElementById('sp-pass').value;
+  const pass2=document.getElementById('sp-pass2').value;
+  const errEl=document.getElementById('sp-err');
+  const okEl=document.getElementById('sp-ok');
+  errEl.innerText='';okEl.style.display='none';
+
+  if(!email){errEl.innerText='EMAIL REQUIRED';return;}
+  if(pass.length<6){errEl.innerText='PASSWORD MUST BE AT LEAST 6 CHARACTERS';return;}
+  if(pass!==pass2){errEl.innerText='PASSWORDS DO NOT MATCH';return;}
+
+  // Verify this email has a Google sign-in method (i.e. it's a Google account)
+  auth.fetchSignInMethodsForEmail(email).then(methods=>{
+    if(!methods.includes('google.com')){
+      errEl.innerText='NO GOOGLE ACCOUNT FOUND FOR THIS EMAIL. REGISTER NORMALLY.';
+      return;
+    }
+    if(methods.includes('password')){
+      // Already has a password — just use the standard login. Sign them in to re-link.
+      errEl.innerText='PASSWORD ALREADY SET. USE LOGIN WITH EMAIL + PASSWORD.';
+      return;
+    }
+    // We need to sign in with Google first to get a valid credential, then link password.
+    // Since we can't do popups in-game, we use the REST API to create the email/password
+    // credential and link it via Firebase Auth REST directly.
+    // Firebase linkWithCredential requires an authenticated session — use signInWithPopup
+    // outside of GMod, or use the REST link endpoint.
+    //
+    // In-game safe path: use the Firebase Auth REST API to directly link the email/password
+    // to the existing Google account via the update endpoint.
+    // We achieve this by calling signInWithEmailLink... actually the cleanest in-game safe
+    // approach is to use the Firebase Admin-equivalent REST: updateAccount with email+password.
+    // But we don't have admin SDK here. So instead: call createUserWithEmailAndPassword
+    // which will FAIL if the email exists (it does, via Google), catch that, and instruct
+    // the user to use the website for the one-time link step.
+    //
+    // Actually the correct approach without popup: sign in via Google REST token exchange
+    // is not feasible here. We provide a clear message pointing users to the website.
+    //
+    // What DOES work without popup: if the user is currently signed in via Google
+    // (they arrived at this modal from the dashboard "set password" link), we can
+    // call currentUser.linkWithCredential directly.
+
+    if(auth.currentUser&&auth.currentUser.email&&auth.currentUser.email.toLowerCase()===email.toLowerCase()){
+      // User is signed in with Google right now — link password directly
+      const credential=firebase.auth.EmailAuthProvider.credential(email,pass);
+      auth.currentUser.linkWithCredential(credential).then(()=>{
+        okEl.style.display='block';
+        okEl.innerText='PASSWORD SET. YOU CAN NOW LOG IN WITH EMAIL + PASSWORD.';
+        errEl.innerText='';
+      }).catch(err2=>errEl.innerText='ERROR: '+err2.message.toUpperCase());
+    } else {
+      // Not signed in — need Google session to link. Cannot do popup in-game.
+      // Direct them to the website for this one-time step.
+      errEl.innerText='';
+      okEl.style.display='block';
+      okEl.innerText='FIRST-TIME SETUP REQUIRED: VISIT THE CODEX WEBSITE (frogflame047.github.io/codex-archives/) IN YOUR BROWSER, SIGN IN WITH GOOGLE, THEN RETURN HERE AND CLICK "SET AN IN-GAME PASSWORD" — IT WILL LINK AUTOMATICALLY WHILE YOU ARE SIGNED IN.';
+    }
+  }).catch(err=>errEl.innerText='ERROR: '+err.message.toUpperCase());
+}
 
 auth.onAuthStateChanged(user=>{
   currentUser=user;
@@ -813,6 +962,14 @@ auth.onAuthStateChanged(user=>{
       }
       userProfile=snap.val();
       document.getElementById('topbar-user').innerText='USER: '+userProfile.name;
+      // Show "Set Password" button in topbar only if account is Google-only (no password linked)
+      const spBtn=document.getElementById('topbar-setpw-btn');
+      if(spBtn&&user.email){
+        auth.fetchSignInMethodsForEmail(user.email).then(methods=>{
+          const googleOnly=methods.includes('google.com')&&!methods.includes('password');
+          spBtn.style.display=googleOnly?'inline-block':'none';
+        }).catch(()=>{spBtn.style.display='none';});
+      }
       showScreen('s-dash');
       loadDocs();
     });
