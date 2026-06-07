@@ -205,15 +205,25 @@ hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
       <div class="auth-tab" id="tab-reg" onclick="switchAuthTab('reg')">REGISTER</div>
     </div>
     <div id="auth-login">
-      <div class="field"><div class="label">CALLSIGN</div><input id="l-callsign" type="text" autocomplete="off" maxlength="20" onkeydown="if(event.key==='Enter')document.getElementById('l-pass').focus()"></div>
+      <div class="field"><div class="label">EMAIL</div><input id="l-email" type="email" autocomplete="off"></div>
       <div class="field"><div class="label">PASSWORD</div><input id="l-pass" type="password" onkeydown="if(event.key==='Enter')doLogin()"></div>
       <button class="btn" style="width:100%;margin-top:4px;" onclick="doLogin()">AUTHENTICATE</button>
+      <div style="display:flex;align-items:center;gap:8px;margin:12px 0;"><div style="flex:1;border-top:1px dashed var(--tc-dim);"></div><span style="font-size:0.85rem;color:var(--tc-dim);">OR</span><div style="flex:1;border-top:1px dashed var(--tc-dim);"></div></div>
+      <button class="btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;" onclick="doGoogleLogin()">
+        <svg width="16" height="16" viewBox="0 0 48 48" style="flex-shrink:0;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        SIGN IN WITH GOOGLE
+      </button>
     </div>
     <div id="auth-reg" style="display:none;">
-      <div class="field"><div class="label">CALLSIGN</div><input id="r-name" maxlength="20" autocomplete="off" onkeydown="if(event.key==='Enter')document.getElementById('r-pass').focus()"></div>
-      <div class="field"><div class="label">PASSWORD (MIN 6)</div><input id="r-pass" type="password" onkeydown="if(event.key==='Enter')document.getElementById('r-pass2').focus()"></div>
-      <div class="field"><div class="label">CONFIRM PASSWORD</div><input id="r-pass2" type="password" onkeydown="if(event.key==='Enter')doRegister()"></div>
+      <div class="field"><div class="label">DISPLAY NAME (CALLSIGN)</div><input id="r-name" maxlength="20" autocomplete="off"></div>
+      <div class="field"><div class="label">EMAIL</div><input id="r-email" type="email" autocomplete="off"></div>
+      <div class="field"><div class="label">PASSWORD (MIN 6)</div><input id="r-pass" type="password"></div>
       <button class="btn" style="width:100%;margin-top:4px;" onclick="doRegister()">CREATE ACCOUNT</button>
+      <div style="display:flex;align-items:center;gap:8px;margin:12px 0;"><div style="flex:1;border-top:1px dashed var(--tc-dim);"></div><span style="font-size:0.85rem;color:var(--tc-dim);">OR</span><div style="flex:1;border-top:1px dashed var(--tc-dim);"></div></div>
+      <button class="btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;" onclick="doGoogleRegister()">
+        <svg width="16" height="16" viewBox="0 0 48 48" style="flex-shrink:0;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        REGISTER WITH GOOGLE
+      </button>
     </div>
     <div id="auth-err" style="color:#dc143c;margin-top:10px;font-size:0.95rem;text-align:center;min-height:20px;"></div>
   </div>
@@ -403,7 +413,15 @@ hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
   </div>
 </div>
 
-
+<div class="modal-bg" id="google-callsign-modal">
+  <div class="modal">
+    <h3>CHOOSE YOUR CALLSIGN</h3>
+    <p style="font-size:1rem;color:var(--tc-dim);margin-bottom:12px;">GOOGLE ACCOUNT VERIFIED. SET YOUR DISPLAY NAME TO COMPLETE REGISTRATION.</p>
+    <div class="field"><div class="label">CALLSIGN (DISPLAY NAME)</div><input id="gc-name" maxlength="20" autocomplete="off" onkeydown="if(event.key==='Enter')completeGoogleRegister()"></div>
+    <div id="gc-err" style="color:#dc143c;font-size:0.95rem;min-height:16px;margin-bottom:8px;"></div>
+    <button class="btn" style="width:100%;" onclick="completeGoogleRegister()">CONFIRM CALLSIGN</button>
+  </div>
+</div>
 
 <script>
 const firebaseConfig={apiKey:"AIzaSyDmUZ5mw9QPZFjlgujcJF8lK0Hg5lxeDKg",authDomain:"terminal-cracker-v2077.firebaseapp.com",databaseURL:"https://terminal-cracker-v2077-default-rtdb.firebaseio.com",projectId:"terminal-cracker-v2077",storageBucket:"terminal-cracker-v2077.firebasestorage.app",messagingSenderId:"772662562385",appId:"1:772662562385:web:ce27ffa901d0413b94b270"};
@@ -665,17 +683,6 @@ function handleImgFile(file){
 }
 
 // ===== AUTH =====
-// Firebase Auth requires an email. We fabricate a deterministic internal one:
-// callsign "KNIGHT_CROSS" → "knight_cross@codex.bos"
-// Players never see or type this — they only ever use their callsign.
-
-function sanitizeCallsign(raw){
-  return raw.trim().toUpperCase().replace(/[^A-Z0-9_\-]/g,'');
-}
-function callsignToEmail(callsign){
-  return callsign.toLowerCase()+'@codex.bos';
-}
-
 function switchAuthTab(t){
   document.getElementById('tab-login').classList.toggle('active',t==='login');
   document.getElementById('tab-reg').classList.toggle('active',t==='reg');
@@ -684,44 +691,100 @@ function switchAuthTab(t){
   document.getElementById('auth-err').innerText='';
 }
 function setAuthErr(m){document.getElementById('auth-err').innerText=m;}
-
 function doLogin(){
-  const callsign=sanitizeCallsign(document.getElementById('l-callsign').value);
-  const pass=document.getElementById('l-pass').value;
-  if(!callsign){setAuthErr('ENTER YOUR CALLSIGN');return;}
-  if(!pass){setAuthErr('ENTER YOUR PASSWORD');return;}
-  const email=callsignToEmail(callsign);
-  auth.signInWithEmailAndPassword(email,pass).catch(err=>{
-    const code=err.code||'';
-    if(code==='auth/user-not-found'||code==='auth/invalid-credential'){
-      setAuthErr('CALLSIGN NOT FOUND. CHECK SPELLING OR REGISTER.');
-    } else if(code==='auth/wrong-password'){
-      setAuthErr('INCORRECT PASSWORD.');
-    } else {
-      setAuthErr('ERROR: '+err.message.toUpperCase());
-    }
-  });
+  const e=document.getElementById('l-email').value.trim();
+  const p=document.getElementById('l-pass').value;
+  if(!e||!p){setAuthErr('ENTER EMAIL AND PASSWORD');return;}
+  auth.signInWithEmailAndPassword(e,p).catch(err=>setAuthErr('ERROR: '+err.message.toUpperCase()));
+}
+function doRegister(){
+  const name=document.getElementById('r-name').value.trim().toUpperCase();
+  const e=document.getElementById('r-email').value.trim();
+  const p=document.getElementById('r-pass').value;
+  if(!name||name.length<2){setAuthErr('CALLSIGN REQUIRED (MIN 2 CHARS)');return;}
+  if(!e||p.length<6){setAuthErr('VALID EMAIL AND PASSWORD (6+) REQUIRED');return;}
+  auth.createUserWithEmailAndPassword(e,p).then(cred=>{
+    return db.ref('users/'+cred.user.uid).set({name,email:e,createdAt:Date.now()});
+  }).catch(err=>setAuthErr('ERROR: '+err.message.toUpperCase()));
+}
+// Holds the Google credential temporarily during registration callsign step
+let pendingGoogleUser=null;
+
+function doGoogleLogin(){
+  // LOGIN path — Google account must already have a profile
+  const provider=new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).then(result=>{
+    const user=result.user;
+    return db.ref('users/'+user.uid).once('value').then(snap=>{
+      if(!snap.exists()){
+        // No profile = not registered — sign them back out and show error
+        return auth.signOut().then(()=>{
+          setAuthErr('NO ACCOUNT FOUND. USE "REGISTER WITH GOOGLE" TO CREATE ONE.');
+        });
+      }
+      // Profile exists — onAuthStateChanged handles the rest
+    });
+  }).catch(err=>setAuthErr('ERROR: '+err.message.toUpperCase()));
 }
 
-function doRegister(){
-  const name=sanitizeCallsign(document.getElementById('r-name').value);
-  const pass=document.getElementById('r-pass').value;
-  const pass2=document.getElementById('r-pass2').value;
-  if(!name||name.length<2){setAuthErr('CALLSIGN REQUIRED (MIN 2 CHARS, LETTERS/NUMBERS/_ ONLY)');return;}
-  if(pass.length<6){setAuthErr('PASSWORD MUST BE AT LEAST 6 CHARACTERS');return;}
-  if(pass!==pass2){setAuthErr('PASSWORDS DO NOT MATCH');return;}
-  // Check callsign not already taken via usernames index
-  db.ref('usernames/'+name).once('value').then(snap=>{
-    if(snap.exists()){setAuthErr('CALLSIGN ALREADY TAKEN. CHOOSE ANOTHER.');return;}
-    const email=callsignToEmail(name);
-    return auth.createUserWithEmailAndPassword(email,pass).then(cred=>{
-      const uid=cred.user.uid;
-      return db.ref().update({
-        ['users/'+uid]:{name,email,createdAt:Date.now()},
-        ['usernames/'+name]:uid
+function doGoogleRegister(){
+  // REGISTER path — Google account must NOT already have a profile
+  const provider=new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).then(result=>{
+    const user=result.user;
+    return db.ref('users/'+user.uid).once('value').then(snap=>{
+      if(snap.exists()){
+        // Already registered — just log them in normally
+        return; // onAuthStateChanged will pick it up
+      }
+      // New user — sign out temporarily, hold uid, show callsign modal
+      pendingGoogleUser=user;
+      return auth.signOut().then(()=>{
+        document.getElementById('gc-name').value='';
+        document.getElementById('gc-err').innerText='';
+        openModal('google-callsign-modal');
+        setTimeout(()=>document.getElementById('gc-name').focus(),100);
       });
     });
   }).catch(err=>setAuthErr('ERROR: '+err.message.toUpperCase()));
+}
+
+function completeGoogleRegister(){
+  const name=document.getElementById('gc-name').value.trim().toUpperCase();
+  if(!name||name.length<2){
+    document.getElementById('gc-err').innerText='CALLSIGN REQUIRED (MIN 2 CHARS)';
+    return;
+  }
+  if(!pendingGoogleUser){
+    document.getElementById('gc-err').innerText='SESSION EXPIRED. PLEASE TRY AGAIN.';
+    closeModal('google-callsign-modal');
+    return;
+  }
+  // Re-authenticate with Google to restore the session
+  const provider=new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).then(result=>{
+    const user=result.user;
+    // Verify it's the same Google account
+    if(user.uid!==pendingGoogleUser.uid){
+      return auth.signOut().then(()=>{
+        document.getElementById('gc-err').innerText='ACCOUNT MISMATCH. PLEASE TRY AGAIN.';
+        pendingGoogleUser=null;
+        closeModal('google-callsign-modal');
+      });
+    }
+    return db.ref('users/'+user.uid).set({
+      name,
+      email:user.email,
+      createdAt:Date.now(),
+      authProvider:'google'
+    }).then(()=>{
+      pendingGoogleUser=null;
+      closeModal('google-callsign-modal');
+      // onAuthStateChanged will fire and complete login
+    });
+  }).catch(err=>{
+    document.getElementById('gc-err').innerText='ERROR: '+err.message.toUpperCase();
+  });
 }
 
 function doLogout(){auth.signOut();}
