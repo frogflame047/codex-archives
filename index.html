@@ -185,6 +185,33 @@ hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
 </style>
 </head>
 <body>
+<script>
+// Read Lua-supplied pixel dimensions from query string (?gw=W&gh=H).
+// Applied before any layout so the page fills the DHTML panel exactly.
+(function(){
+  var p = new URLSearchParams(window.location.search);
+  var gw = parseInt(p.get('gw'), 10);
+  var gh = parseInt(p.get('gh'), 10);
+  if(gw > 0 && gh > 0){
+    var s = document.documentElement.style;
+    s.width  = gw + 'px';
+    s.height = gh + 'px';
+    s.minWidth  = gw + 'px';
+    s.minHeight = gh + 'px';
+    s.overflow = 'hidden';
+    // Also set via meta so the CEF viewport reports correctly
+    window._gmodW = gw;
+    window._gmodH = gh;
+    // Apply to body once DOM is ready
+    document.addEventListener('DOMContentLoaded', function(){
+      document.body.style.width  = gw + 'px';
+      document.body.style.height = gh + 'px';
+      var m = document.getElementById('master');
+      if(m){ m.style.width = gw + 'px'; m.style.height = gh + 'px'; }
+    });
+  }
+})();
+</script>
 <audio id="bg-music"></audio>
 <div id="sysinfo">
   <div id="clk-time" style="font-size:1.5rem;letter-spacing:2px;text-shadow:0 0 8px var(--tc);line-height:1.1;"></div>
