@@ -11,13 +11,13 @@
 @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
 :root{--tc:#1ae23b;--bg:#080a08;--tc-dim:rgba(26,226,59,0.45);--tc-bg:rgba(26,226,59,0.08);}
 *{box-sizing:border-box;margin:0;padding:0;}
-body,html{background:var(--bg);color:var(--tc);font-family:'VT323','Fixedsys',monospace;height:100%;overflow:hidden;text-transform:uppercase;user-select:none;font-size:16px;}
+body,html{background:var(--bg);color:var(--tc);font-family:'VT323','Fixedsys',monospace;width:100vw;height:100vh;min-width:100%;overflow:hidden;text-transform:uppercase;user-select:none;font-size:16px;}
 a{color:var(--tc);}
 /* CRT */
 body::before{content:" ";display:block;position:fixed;inset:0;background:radial-gradient(circle,rgba(0,0,0,0) 50%,rgba(0,0,0,0.65) 100%);z-index:9000;pointer-events:none;}
 body::after{content:" ";display:block;position:fixed;inset:0;background:linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,0.4) 50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.03),rgba(0,0,255,0.06));z-index:8999;background-size:100% 3px,3px 100%;pointer-events:none;animation:scanScroll 15s linear infinite;}
 @keyframes scanScroll{0%{background-position:0 0;}100%{background-position:0 100vh;}}
-#master{width:100%;height:100%;position:relative;z-index:3;animation:jitter 7s infinite;}
+#master{width:100vw;height:100vh;position:relative;z-index:3;animation:jitter 7s infinite;}
 @keyframes jitter{0%,10%{transform:translate(0,0);}10.5%{transform:translate(-0.5px,0.5px);}11%{transform:translate(0.5px,-0.5px);}11.5%{transform:translate(0,0);}100%{transform:translate(0,0);}}
 /* Scrollbars */
 .cs::-webkit-scrollbar{width:10px;}
@@ -40,7 +40,7 @@ hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
 .screen.active{display:flex;}
 /* AUTH */
 #s-auth{justify-content:center;align-items:center;flex-direction:column;font-size:1.3rem;text-shadow:0 0 5px var(--tc);}
-.auth-box{border:2px solid var(--tc);padding:2rem;width:420px;background:rgba(0,0,0,0.85);}
+.auth-box{border:2px solid var(--tc);padding:2rem;width:min(520px,90vw);background:rgba(0,0,0,0.85);}
 .auth-box h2{text-align:center;margin-bottom:1.5rem;letter-spacing:3px;}
 .auth-tabs{display:flex;gap:0;margin-bottom:1.5rem;}
 .auth-tab{flex:1;text-align:center;padding:4px;cursor:pointer;border:1px solid var(--tc);font-size:1rem;}
