@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=1280, initial-scale=1.0">
 <title>ROBCO CODEX — UNIFIED ARCHIVE SYSTEM</title>
 <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
@@ -186,6 +186,19 @@ hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
 </style>
 </head>
 <body>
+<div id="vp-debug" style="position:fixed;top:0;left:0;z-index:99999;background:#000;color:#1ae23b;font-family:monospace;font-size:14px;padding:4px 8px;border:1px solid #1ae23b;"></div>
+<script>
+(function(){
+  var el = document.getElementById('vp-debug');
+  function show(){
+    el.innerText = 'VPW:'+window.innerWidth+' VPH:'+window.innerHeight+' SW:'+document.documentElement.scrollWidth+' SH:'+document.documentElement.scrollHeight+' DPR:'+window.devicePixelRatio;
+  }
+  show();
+  setTimeout(show, 500);
+  setTimeout(show, 1500);
+  setTimeout(function(){ el.style.display='none'; }, 8000);
+})();
+</script>
 <audio id="bg-music"></audio>
 <div id="sysinfo">
   <div id="clk-time" style="font-size:1.5rem;letter-spacing:2px;text-shadow:0 0 8px var(--tc);line-height:1.1;"></div>
