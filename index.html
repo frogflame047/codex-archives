@@ -448,13 +448,11 @@ hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
 <div class="modal-bg" id="set-password-modal">
   <div class="modal">
     <h3>SET IN-GAME PASSWORD</h3>
-    <p style="font-size:1rem;color:var(--tc-dim);margin-bottom:4px;">ENTER YOUR GOOGLE ACCOUNT EMAIL AND CHOOSE A PASSWORD.</p>
-    <p style="font-size:0.85rem;color:var(--tc-dim);margin-bottom:12px;">THIS LINKS A PASSWORD TO YOUR ACCOUNT SO YOU CAN SIGN IN WITHOUT THE GOOGLE BUTTON.</p>
-    <div class="field"><div class="label">GOOGLE EMAIL</div><input id="sp-email" type="email" autocomplete="off"></div>
+    <p style="font-size:0.9rem;color:var(--tc-dim);margin-bottom:12px;">CHOOSE A PASSWORD TO LINK TO YOUR GOOGLE ACCOUNT. YOU'LL USE YOUR CALLSIGN + THIS PASSWORD TO LOG IN AT IN-GAME TERMINALS.</p>
     <div class="field"><div class="label">NEW PASSWORD (MIN 6)</div><input id="sp-pass" type="password"></div>
     <div class="field"><div class="label">CONFIRM PASSWORD</div><input id="sp-pass2" type="password" onkeydown="if(event.key==='Enter')doSetPassword()"></div>
     <div id="sp-err" style="color:#dc143c;font-size:0.95rem;min-height:16px;margin-bottom:8px;"></div>
-    <div id="sp-ok" style="color:var(--tc);font-size:0.95rem;min-height:16px;margin-bottom:8px;display:none;">PASSWORD SET. YOU CAN NOW LOG IN WITH EMAIL + PASSWORD.</div>
+    <div id="sp-ok" style="color:var(--tc);font-size:0.95rem;min-height:16px;margin-bottom:8px;display:none;"></div>
     <div style="display:flex;gap:8px;">
       <button class="btn" onclick="doSetPassword()">SET PASSWORD</button>
       <button class="btn-ghost" onclick="closeModal('set-password-modal')">CANCEL</button>
@@ -890,64 +888,32 @@ function openSetPasswordModal(){
 }
 
 function doSetPassword(){
-  const email=document.getElementById('sp-email').value.trim();
   const pass=document.getElementById('sp-pass').value;
   const pass2=document.getElementById('sp-pass2').value;
   const errEl=document.getElementById('sp-err');
   const okEl=document.getElementById('sp-ok');
   errEl.innerText='';okEl.style.display='none';
 
-  if(!email){errEl.innerText='EMAIL REQUIRED';return;}
+  if(!auth.currentUser){errEl.innerText='NOT SIGNED IN. PLEASE LOG IN FIRST.';return;}
   if(pass.length<6){errEl.innerText='PASSWORD MUST BE AT LEAST 6 CHARACTERS';return;}
   if(pass!==pass2){errEl.innerText='PASSWORDS DO NOT MATCH';return;}
 
-  // Verify this email has a Google sign-in method (i.e. it's a Google account)
-  auth.fetchSignInMethodsForEmail(email).then(methods=>{
-    if(!methods.includes('google.com')){
-      errEl.innerText='NO GOOGLE ACCOUNT FOUND FOR THIS EMAIL. REGISTER NORMALLY.';
-      return;
-    }
-    if(methods.includes('password')){
-      // Already has a password — just use the standard login. Sign them in to re-link.
-      errEl.innerText='PASSWORD ALREADY SET. USE LOGIN WITH EMAIL + PASSWORD.';
-      return;
-    }
-    // We need to sign in with Google first to get a valid credential, then link password.
-    // Since we can't do popups in-game, we use the REST API to create the email/password
-    // credential and link it via Firebase Auth REST directly.
-    // Firebase linkWithCredential requires an authenticated session — use signInWithPopup
-    // outside of GMod, or use the REST link endpoint.
-    //
-    // In-game safe path: use the Firebase Auth REST API to directly link the email/password
-    // to the existing Google account via the update endpoint.
-    // We achieve this by calling signInWithEmailLink... actually the cleanest in-game safe
-    // approach is to use the Firebase Admin-equivalent REST: updateAccount with email+password.
-    // But we don't have admin SDK here. So instead: call createUserWithEmailAndPassword
-    // which will FAIL if the email exists (it does, via Google), catch that, and instruct
-    // the user to use the website for the one-time link step.
-    //
-    // Actually the correct approach without popup: sign in via Google REST token exchange
-    // is not feasible here. We provide a clear message pointing users to the website.
-    //
-    // What DOES work without popup: if the user is currently signed in via Google
-    // (they arrived at this modal from the dashboard "set password" link), we can
-    // call currentUser.linkWithCredential directly.
+  // Check if password is already linked via providerData (synchronous, no deprecated API)
+  const providers=auth.currentUser.providerData.map(p=>p.providerId);
+  if(providers.includes('password')){
+    errEl.innerText='PASSWORD ALREADY SET. USE YOUR CALLSIGN + PASSWORD TO LOG IN.';
+    return;
+  }
 
-    if(auth.currentUser&&auth.currentUser.email&&auth.currentUser.email.toLowerCase()===email.toLowerCase()){
-      // User is signed in with Google right now — link password directly
-      const credential=firebase.auth.EmailAuthProvider.credential(email,pass);
-      auth.currentUser.linkWithCredential(credential).then(()=>{
-        okEl.style.display='block';
-        okEl.innerText='PASSWORD SET. YOU CAN NOW LOG IN WITH EMAIL + PASSWORD.';
-        errEl.innerText='';
-      }).catch(err2=>errEl.innerText='ERROR: '+err2.message.toUpperCase());
-    } else {
-      // Not signed in — need Google session to link. Cannot do popup in-game.
-      // Direct them to the website for this one-time step.
-      errEl.innerText='';
-      okEl.style.display='block';
-      okEl.innerText='FIRST-TIME SETUP REQUIRED: VISIT THE CODEX WEBSITE (frogflame047.github.io/codex-archives/) IN YOUR BROWSER, SIGN IN WITH GOOGLE, THEN RETURN HERE AND CLICK "SET AN IN-GAME PASSWORD" — IT WILL LINK AUTOMATICALLY WHILE YOU ARE SIGNED IN.';
-    }
+  // User is signed in — link email+password credential directly
+  const credential=firebase.auth.EmailAuthProvider.credential(auth.currentUser.email,pass);
+  auth.currentUser.linkWithCredential(credential).then(()=>{
+    okEl.style.display='block';
+    okEl.innerText='PASSWORD SET. YOU CAN NOW LOG IN WITH YOUR CALLSIGN + PASSWORD.';
+    errEl.innerText='';
+    // Hide the topbar button since password is now linked
+    const spBtn=document.getElementById('topbar-setpw-btn');
+    if(spBtn)spBtn.style.display='none';
   }).catch(err=>errEl.innerText='ERROR: '+err.message.toUpperCase());
 }
 
