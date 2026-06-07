@@ -12,7 +12,7 @@
 :root{--tc:#1ae23b;--bg:#080a08;--tc-dim:rgba(26,226,59,0.45);--tc-bg:rgba(26,226,59,0.08);}
 *{box-sizing:border-box;margin:0;padding:0;}
 html{background:var(--bg);width:100%;height:100%;overflow:hidden;}
-body{background:var(--bg);color:var(--tc);font-family:'VT323','Fixedsys',monospace;overflow:hidden;text-transform:uppercase;user-select:none;font-size:16px;position:fixed;inset:0;width:100%;height:100%;}
+body{background:var(--bg);color:var(--tc);font-family:'VT323','Fixedsys',monospace;overflow:hidden;text-transform:uppercase;user-select:none;font-size:clamp(16px,1.2vw,22px);position:fixed;inset:0;width:100%;height:100%;}
 a{color:var(--tc);}
 /* CRT */
 body::before{content:" ";display:block;position:fixed;inset:0;background:radial-gradient(circle,rgba(0,0,0,0) 50%,rgba(0,0,0,0.65) 100%);z-index:9000;pointer-events:none;}
@@ -40,8 +40,8 @@ hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
 .screen{display:none;position:absolute;inset:0;z-index:10;}
 .screen.active{display:flex;}
 /* AUTH */
-#s-auth{justify-content:center;align-items:center;flex-direction:column;font-size:1.3rem;text-shadow:0 0 5px var(--tc);}
-.auth-box{border:2px solid var(--tc);padding:2rem;width:min(520px,88%);background:rgba(0,0,0,0.85);}
+#s-auth{justify-content:center;align-items:center;flex-direction:column;font-size:1.3rem;text-shadow:0 0 5px var(--tc);padding:2rem;}
+.auth-box{border:2px solid var(--tc);padding:2rem;width:clamp(380px,40%,860px);background:rgba(0,0,0,0.85);}
 .auth-box h2{text-align:center;margin-bottom:1.5rem;letter-spacing:3px;}
 .auth-tabs{display:flex;gap:0;margin-bottom:1.5rem;}
 .auth-tab{flex:1;text-align:center;padding:4px;cursor:pointer;border:1px solid var(--tc);font-size:1rem;}
@@ -186,19 +186,6 @@ hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
 </style>
 </head>
 <body>
-<div id="vp-debug" style="position:fixed;top:0;left:0;z-index:99999;background:#000;color:#1ae23b;font-family:monospace;font-size:14px;padding:4px 8px;border:1px solid #1ae23b;"></div>
-<script>
-(function(){
-  var el = document.getElementById('vp-debug');
-  function show(){
-    el.innerText = 'VPW:'+window.innerWidth+' VPH:'+window.innerHeight+' SW:'+document.documentElement.scrollWidth+' SH:'+document.documentElement.scrollHeight+' DPR:'+window.devicePixelRatio;
-  }
-  show();
-  setTimeout(show, 500);
-  setTimeout(show, 1500);
-  setTimeout(function(){ el.style.display='none'; }, 8000);
-})();
-</script>
 <audio id="bg-music"></audio>
 <div id="sysinfo">
   <div id="clk-time" style="font-size:1.5rem;letter-spacing:2px;text-shadow:0 0 8px var(--tc);line-height:1.1;"></div>
