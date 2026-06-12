@@ -189,6 +189,9 @@ hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
 .music-bar button:hover{background:var(--tc);color:var(--bg);}
 #song-display{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;}
 .no-doc{flex:1;display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:var(--tc-dim);text-align:center;padding:24px;}
+/* PIP-BOY remote uplink theme */
+body.pipboy{--tc:#ffb642;--tc-dim:rgba(255,182,66,0.45);--tc-bg:rgba(255,182,66,0.08);}
+body.pipboy .topbar-title::after{content:" — PIP-BOY UPLINK";font-size:0.75rem;color:var(--tc-dim);letter-spacing:1px;}
 </style>
 </head>
 <body>
@@ -258,6 +261,7 @@ hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
         <div class="doc-toolbar" id="doc-toolbar">
           <span id="doc-title-display" style="font-size:1.1rem;letter-spacing:1px;margin-right:auto;color:var(--tc);text-shadow:0 0 4px var(--tc);"></span>
           <button class="btn-ghost" id="btn-bm" onclick="toggleBookmark()" style="display:none;">☆ PIN</button>
+          <button class="btn-ghost" id="btn-tape" onclick="burnTape()" style="display:none;">⊙ BURN TAPE</button>
           <button class="btn-ghost" id="btn-edit" onclick="openEditor()" style="display:none;">EDIT</button>
           <button class="btn-ghost" id="btn-perms" onclick="openPermsModal()" style="display:none;">PERMISSIONS</button>
           <button class="btn-ghost btn-red" id="btn-del" onclick="deleteDoc()" style="display:none;background:#dc143c;color:#fff;border-color:#dc143c;">DELETE</button>
@@ -424,6 +428,17 @@ hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
   </div>
 </div>
 
+<!-- HOLOTAPE BURN MODAL -->
+<div class="modal-bg" id="tape-modal">
+  <div class="modal" style="max-width:460px;text-align:center;">
+    <div class="modal-close" onclick="closeModal('tape-modal')">[X]</div>
+    <h3>⊙ HOLOTAPE BURNED</h3>
+    <p style="font-size:0.95rem;color:var(--tc-dim);margin-bottom:8px;">FILE: <span id="tape-doc-name"></span></p>
+    <div id="tape-code-display" style="font-size:2.2rem;letter-spacing:6px;border:2px dashed var(--tc);padding:10px;margin:10px 0;text-shadow:0 0 8px var(--tc);"></div>
+    <p style="font-size:0.85rem;color:var(--tc-dim);text-transform:none;">Use /TapeRedeem &lt;code&gt; in-game to produce the physical holotape. Inserting it into any terminal makes this file accessible there.</p>
+  </div>
+</div>
+
 <!-- CONFIRM MODAL (in-page replacement for browser confirm(), which GMod CEF does not support) -->
 <div class="modal-bg" id="confirm-modal">
   <div class="modal" style="max-width:440px;">
@@ -443,6 +458,18 @@ const firebaseConfig={apiKey:"AIzaSyDmUZ5mw9QPZFjlgujcJF8lK0Hg5lxeDKg",authDomai
 firebase.initializeApp(firebaseConfig);
 const auth=firebase.auth();
 const db=firebase.database();
+
+// ===== TERMINAL CONTEXT (set by the GMod server via URL params) =====
+// ?scope=<terminalID>  → standalone terminal: show ONLY files written at this terminal (+ inserted tape)
+// ?tape=<code> / ?tapes=a,b,c → holotape(s) currently available to this session
+// ?mode=pipboy → Pip-Boy remote uplink theme
+const URLP=new URLSearchParams(location.search);
+const SCOPE=(URLP.get('scope')||'').trim();
+const PIPBOY=(URLP.get('mode')||'')==='pipboy';
+const TAPE_CODES=((URLP.get('tapes')||URLP.get('tape')||'')+'').split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
+let tapeMeta={};   // code  -> holotape record
+let tapeDocIds={}; // docId -> code
+if(PIPBOY)document.body.classList.add('pipboy');
 const bgMusic=document.getElementById('bg-music');
 let currentUser=null,userProfile=null,allDocs={},selectedDocId=null,editingDocId=null,hackTargetId=null,hackTargetDoc=null,hackCallback=null;
 let userBookmarks={},bmRef=null;
@@ -801,8 +828,20 @@ function showScreen(id){
 
 // ===== DOCS LOADING =====
 let docsListener=null;
+let tapesLoaded=false;
+function loadTapes(){
+  if(tapesLoaded||!TAPE_CODES.length)return;
+  tapesLoaded=true;
+  TAPE_CODES.forEach(code=>{
+    db.ref('holotapes/'+code).once('value').then(s=>{
+      const r=s.val();
+      if(r&&r.fileId){tapeMeta[code]=r;tapeDocIds[r.fileId]=code;renderDocList();}
+    }).catch(()=>{});
+  });
+}
 function loadDocs(){
   if(docsListener)docsListener();
+  loadTapes();
   const ref=db.ref('docs');
   docsListener=ref.on('value',snap=>{
     allDocs=snap.val()||{};
@@ -811,7 +850,8 @@ function loadDocs(){
   });
 }
 
-function canView(doc){
+function canView(doc,id){
+  if(id&&tapeDocIds[id])return true; // possessing the physical holotape grants view access
   if(!currentUser)return doc.visibility==='public';
   if(doc.ownerUID===currentUser.uid)return true;
   if(doc.visibility==='public')return true;
@@ -875,7 +915,14 @@ function renderDocList(){
   const list=document.getElementById('doc-list');
   const em=currentUser?currentUser.email.toLowerCase().replace(/\./g,'_'):'';
   const entries=Object.entries(allDocs).filter(([id,doc])=>{
-    if(!canView(doc))return false;
+    const isTape=!!tapeDocIds[id];
+    const docScope=(doc.scope||'').trim();
+    if(!isTape){
+      if(SCOPE){if(docScope!==SCOPE)return false;}      // standalone terminal: only its own files
+      else if(docScope)return false;                     // main archive: hide terminal-local files
+    }
+    if(!canView(doc,id))return false;
+    if(isTape)return true;
     if(filter==='mine')return doc.ownerUID===currentUser.uid;
     if(filter==='shared')return doc.ownerUID!==currentUser.uid&&(doc.editors&&doc.editors[em]||doc.viewers&&doc.viewers[em]);
     if(filter==='public')return doc.visibility==='public';
@@ -884,8 +931,15 @@ function renderDocList(){
   list.innerHTML='';
   if(!entries.length){list.innerHTML='<div style="padding:12px;color:var(--tc-dim);font-size:0.95rem;">NO FILES FOUND</div>';return;}
   const collapsed=getCollapsed();
-  const pinned=entries.filter(([id])=>userBookmarks[id]);
-  const rest=entries.filter(([id])=>!userBookmarks[id]);
+  const tapes=entries.filter(([id])=>tapeDocIds[id]);
+  const nonTape=entries.filter(([id])=>!tapeDocIds[id]);
+  const pinned=nonTape.filter(([id])=>userBookmarks[id]);
+  const rest=nonTape.filter(([id])=>!userBookmarks[id]);
+  // Inserted/carried holotapes
+  if(tapes.length){
+    list.appendChild(makeFolderHdr('⊙ HOLOTAPE',tapes.length,'__TAPE__',collapsed['__TAPE__']));
+    if(!collapsed['__TAPE__'])tapes.forEach(([id,doc])=>list.appendChild(makeDocItem(id,doc)));
+  }
   // Pinned section
   if(pinned.length){
     list.appendChild(makeFolderHdr('★ PINNED',pinned.length,'__PINNED__',collapsed['__PINNED__']));
@@ -902,8 +956,8 @@ function renderDocList(){
     if(b==='UNFILED')return -1;
     return a.localeCompare(b);
   });
-  // If everything is unfiled and nothing is pinned, skip folder chrome entirely
-  if(!pinned.length&&names.length===1&&names[0]==='UNFILED'){
+  // If everything is unfiled and nothing is pinned or taped, skip folder chrome entirely
+  if(!pinned.length&&!tapes.length&&names.length===1&&names[0]==='UNFILED'){
     groups['UNFILED'].forEach(([id,doc])=>list.appendChild(makeDocItem(id,doc)));
     return;
   }
@@ -926,6 +980,7 @@ function selectDoc(id){
   updateBookmarkBtn();
   document.getElementById('btn-edit').style.display=canEdit(doc)?'inline-block':'none';
   document.getElementById('btn-perms').style.display=doc.ownerUID===currentUser.uid?'inline-block':'none';
+  document.getElementById('btn-tape').style.display=doc.ownerUID===currentUser.uid?'inline-block':'none';
   document.getElementById('btn-del').style.display=doc.ownerUID===currentUser.uid?'inline-block':'none';
   // Handle lock
   if(doc.lockType&&doc.lockType!=='none'){
@@ -1547,7 +1602,7 @@ function openNewDoc(){
   updateCatDatalist();
   document.getElementById('e-tags').value='';
   document.getElementById('e-music').value='';
-  document.getElementById('e-visibility').value='private';
+  document.getElementById('e-visibility').value=SCOPE?'public':'private';
   document.getElementById('e-lock').value='none';
   document.getElementById('e-pw').value='';
   document.getElementById('e-pw-field').style.display='none';
@@ -1608,14 +1663,15 @@ function saveDoc(){
   const parseList=str=>{const obj={};str.split('\n').map(l=>l.trim().toLowerCase()).filter(Boolean).forEach(e=>{obj[e.replace(/\./g,'_')]=true;});return obj;};
   const editors=parseList(document.getElementById('e-editors').value);
   const viewers=parseList(document.getElementById('e-viewers').value);
+  const scope=SCOPE||(editingDocId&&allDocs[editingDocId]&&allDocs[editingDocId].scope)||'';
   const now=Date.now();
   if(editingDocId){
-    db.ref('docs/'+editingDocId).update({title,category,body,tags,visibility,lockType,lockPassword,pageTracks,editors,viewers,updatedAt:now}).then(()=>{
+    db.ref('docs/'+editingDocId).update({title,category,body,tags,visibility,lockType,lockPassword,pageTracks,editors,viewers,scope,updatedAt:now}).then(()=>{
       selectedDocId=editingDocId;showScreen('s-dash');
     });
   } else {
     const newRef=db.ref('docs').push();
-    newRef.set({title,category,body,tags,visibility,lockType,lockPassword,pageTracks,editors,viewers,ownerUID:currentUser.uid,ownerName:userProfile.name,createdAt:now,updatedAt:now}).then(()=>{
+    newRef.set({title,category,body,tags,visibility,lockType,lockPassword,pageTracks,editors,viewers,scope,ownerUID:currentUser.uid,ownerName:userProfile.name,createdAt:now,updatedAt:now}).then(()=>{
       selectedDocId=newRef.key;showScreen('s-dash');
     });
   }
@@ -1636,6 +1692,31 @@ function updateCatDatalist(){
 function togglePreviewMode(){}
 function livePreview(){}
 function insertSnippet(){}
+
+// ===== HOLOTAPE BURNING =====
+function genTapeCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let c='';for(let i=0;i<8;i++)c+=chars[Math.floor(Math.random()*chars.length)];
+  return c;
+}
+function burnTape(){
+  if(!selectedDocId||!currentUser)return;
+  const doc=allDocs[selectedDocId];
+  if(!doc||doc.ownerUID!==currentUser.uid)return;
+  const code=genTapeCode();
+  db.ref('holotapes/'+code).set({
+    fileId:selectedDocId,
+    label:(doc.title||'UNTITLED').slice(0,40),
+    creator:userProfile.name,
+    creatorUID:currentUser.uid,
+    createdAt:Date.now(),
+    redeemed:false
+  }).then(()=>{
+    document.getElementById('tape-doc-name').innerText=doc.title||'UNTITLED';
+    document.getElementById('tape-code-display').innerText=code;
+    openModal('tape-modal');
+  });
+}
 
 // In-page confirm — GMod's CEF silently no-ops confirm()/alert()/prompt(),
 // so destructive actions must use this modal instead.
