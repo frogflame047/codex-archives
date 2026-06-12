@@ -62,6 +62,12 @@ hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
 .doc-item .lock-icon{font-size:0.85rem;opacity:0.7;}
 .doc-item .doc-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .doc-item .doc-owner{font-size:0.75rem;color:var(--tc-dim);}
+.doc-item .bm-star{cursor:pointer;font-size:0.95rem;color:var(--tc-dim);flex-shrink:0;}
+.doc-item .bm-star:hover{color:var(--tc);text-shadow:0 0 4px var(--tc);}
+.doc-item .bm-star.on{color:var(--tc);}
+.folder-hdr{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:pointer;font-size:0.9rem;letter-spacing:1px;color:var(--tc);background:var(--tc-bg);border-bottom:1px solid var(--tc-dim);position:sticky;top:0;z-index:2;}
+.folder-hdr:hover{background:rgba(26,226,59,0.16);}
+.folder-hdr .folder-count{margin-left:auto;color:var(--tc-dim);font-size:0.8rem;}
 /* Main content area */
 .main-area{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 /* DOC VIEW */
@@ -251,6 +257,7 @@ hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
       <div id="doc-view" style="display:none;position:relative;">
         <div class="doc-toolbar" id="doc-toolbar">
           <span id="doc-title-display" style="font-size:1.1rem;letter-spacing:1px;margin-right:auto;color:var(--tc);text-shadow:0 0 4px var(--tc);"></span>
+          <button class="btn-ghost" id="btn-bm" onclick="toggleBookmark()" style="display:none;">☆ PIN</button>
           <button class="btn-ghost" id="btn-edit" onclick="openEditor()" style="display:none;">EDIT</button>
           <button class="btn-ghost" id="btn-perms" onclick="openPermsModal()" style="display:none;">PERMISSIONS</button>
           <button class="btn-ghost btn-red" id="btn-del" onclick="deleteDoc()" style="display:none;background:#dc143c;color:#fff;border-color:#dc143c;">DELETE</button>
@@ -324,6 +331,7 @@ hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
         <div>
           <div class="section-hdr">FILE INFO</div>
           <div class="field"><div class="label">TITLE</div><input id="e-title" maxlength="80"></div>
+          <div class="field"><div class="label">FOLDER / CATEGORY</div><input id="e-category" maxlength="40" list="cat-datalist" placeholder="UNFILED" autocomplete="off"><datalist id="cat-datalist"></datalist></div>
           <div class="field"><div class="label">TAGS (COMMA-SEP)</div><input id="e-tags" maxlength="100"></div>
         </div>
         <div>
@@ -416,6 +424,18 @@ hr{border:none;border-top:1px dashed var(--tc);margin:12px 0;opacity:0.4;}
   </div>
 </div>
 
+<!-- CONFIRM MODAL (in-page replacement for browser confirm(), which GMod CEF does not support) -->
+<div class="modal-bg" id="confirm-modal">
+  <div class="modal" style="max-width:440px;">
+    <h3 id="cf-title" style="color:#dc143c;text-shadow:0 0 5px #dc143c;">CONFIRM</h3>
+    <p id="cf-msg" style="font-size:1rem;color:var(--tc-dim);margin-bottom:16px;text-transform:none;"></p>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn-red" id="cf-yes" style="padding:4px 14px;">[ CONFIRM ]</button>
+      <button class="btn-ghost" onclick="closeModal('confirm-modal')">[ ABORT ]</button>
+    </div>
+  </div>
+</div>
+
 
 
 <script>
@@ -425,6 +445,7 @@ const auth=firebase.auth();
 const db=firebase.database();
 const bgMusic=document.getElementById('bg-music');
 let currentUser=null,userProfile=null,allDocs={},selectedDocId=null,editingDocId=null,hackTargetId=null,hackTargetDoc=null,hackCallback=null;
+let userBookmarks={},bmRef=null;
 let hackAttempts=4,hackLogs=[],hackPassword='',hackWords=[],hackSlots=[];
 let lockoutActive=false,lockoutInterval=null;
 const WORDPOOL=["BROTHERHOODS","PRESERVATION","CONSERVATION","TRANSMISSION","ASSIMILATION","CATASTROPHIC","TECHNOLOGIES","CIVILIZATION","ANNIHILATION","REGENERATION","ILLUMINATING","PURIFICATION","CONSTRUCTION","MODIFICATION","PACIFICATION","INDEPENDENCE","APPRECIATION","INTERFERENCE","OVERWHELMING","RADIOLOGICAL"];
@@ -750,10 +771,19 @@ auth.onAuthStateChanged(user=>{
       }
       userProfile=snap.val();
       document.getElementById('topbar-user').innerText='USER: '+userProfile.name;
+      if(bmRef)bmRef.off();
+      bmRef=db.ref('users/'+user.uid+'/bookmarks');
+      bmRef.on('value',bsnap=>{
+        userBookmarks=bsnap.val()||{};
+        renderDocList();
+        updateBookmarkBtn();
+      });
       showScreen('s-dash');
       loadDocs();
     });
   } else {
+    if(bmRef){bmRef.off();bmRef=null;}
+    userBookmarks={};
     showScreen('s-auth');
     allDocs={};
     selectedDocId=null;
@@ -798,6 +828,48 @@ function canEdit(doc){
 }
 
 function applyFilter(){renderDocList();}
+
+// ===== FOLDERS + BOOKMARKS =====
+function getCollapsed(){try{return JSON.parse(sessionStorage.getItem('codex_folders')||'{}');}catch(e){return{};}}
+function toggleFolder(name){
+  const c=getCollapsed();c[name]=!c[name];
+  sessionStorage.setItem('codex_folders',JSON.stringify(c));
+  renderDocList();
+}
+function docCategory(doc){return (doc.category||'').trim().toUpperCase()||'UNFILED';}
+
+function toggleBookmark(id){
+  id=id||selectedDocId;
+  if(!id||!currentUser)return;
+  const ref=db.ref('users/'+currentUser.uid+'/bookmarks/'+id);
+  if(userBookmarks[id])ref.remove();else ref.set(true);
+}
+function updateBookmarkBtn(){
+  const btn=document.getElementById('btn-bm');
+  if(!btn||!selectedDocId)return;
+  btn.innerText=userBookmarks[selectedDocId]?'★ PINNED':'☆ PIN';
+}
+
+function makeDocItem(id,doc){
+  const div=document.createElement('div');
+  div.className='doc-item'+(id===selectedDocId?' selected':'');
+  const lock=doc.lockType&&doc.lockType!=='none'?'🔒 ':'';
+  const vis=doc.visibility==='public'?'[PUB]':doc.visibility==='unlisted'?'[LST]':'[PRV]';
+  const owner=doc.ownerUID===currentUser.uid?'MINE':doc.ownerName||'UNKNOWN';
+  const starred=!!userBookmarks[id];
+  div.innerHTML=`<span class="bm-star${starred?' on':''}" title="${starred?'UNPIN':'PIN'}">${starred?'★':'☆'}</span><span class="lock-icon">${lock}</span><span class="doc-name" title="${escH(doc.title||'UNTITLED')}">${escH(doc.title||'UNTITLED')}</span><span class="doc-owner">${vis} ${owner}</span>`;
+  div.onclick=()=>selectDoc(id);
+  div.querySelector('.bm-star').onclick=(e)=>{e.stopPropagation();toggleBookmark(id);};
+  return div;
+}
+function makeFolderHdr(label,count,key,collapsed){
+  const hdr=document.createElement('div');
+  hdr.className='folder-hdr';
+  hdr.innerHTML=`<span>${collapsed?'▸':'▾'}</span><span>${escH(label)}</span><span class="folder-count">${count}</span>`;
+  hdr.onclick=()=>toggleFolder(key);
+  return hdr;
+}
+
 function renderDocList(){
   const filter=document.getElementById('filter-select').value;
   const list=document.getElementById('doc-list');
@@ -811,15 +883,33 @@ function renderDocList(){
   }).sort((a,b)=>(b[1].updatedAt||0)-(a[1].updatedAt||0));
   list.innerHTML='';
   if(!entries.length){list.innerHTML='<div style="padding:12px;color:var(--tc-dim);font-size:0.95rem;">NO FILES FOUND</div>';return;}
-  entries.forEach(([id,doc])=>{
-    const div=document.createElement('div');
-    div.className='doc-item'+(id===selectedDocId?' selected':'');
-    const lock=doc.lockType&&doc.lockType!=='none'?'🔒 ':'';
-    const vis=doc.visibility==='public'?'[PUB]':doc.visibility==='unlisted'?'[LST]':'[PRV]';
-    const owner=doc.ownerUID===currentUser.uid?'MINE':doc.ownerName||'UNKNOWN';
-    div.innerHTML=`<span class="lock-icon">${lock}</span><span class="doc-name" title="${escH(doc.title||'UNTITLED')}">${escH(doc.title||'UNTITLED')}</span><span class="doc-owner">${vis} ${owner}</span>`;
-    div.onclick=()=>selectDoc(id);
-    list.appendChild(div);
+  const collapsed=getCollapsed();
+  const pinned=entries.filter(([id])=>userBookmarks[id]);
+  const rest=entries.filter(([id])=>!userBookmarks[id]);
+  // Pinned section
+  if(pinned.length){
+    list.appendChild(makeFolderHdr('★ PINNED',pinned.length,'__PINNED__',collapsed['__PINNED__']));
+    if(!collapsed['__PINNED__'])pinned.forEach(([id,doc])=>list.appendChild(makeDocItem(id,doc)));
+  }
+  // Category folders
+  const groups={};
+  rest.forEach(([id,doc])=>{
+    const cat=docCategory(doc);
+    (groups[cat]=groups[cat]||[]).push([id,doc]);
+  });
+  const names=Object.keys(groups).sort((a,b)=>{
+    if(a==='UNFILED')return 1;
+    if(b==='UNFILED')return -1;
+    return a.localeCompare(b);
+  });
+  // If everything is unfiled and nothing is pinned, skip folder chrome entirely
+  if(!pinned.length&&names.length===1&&names[0]==='UNFILED'){
+    groups['UNFILED'].forEach(([id,doc])=>list.appendChild(makeDocItem(id,doc)));
+    return;
+  }
+  names.forEach(name=>{
+    list.appendChild(makeFolderHdr(name,groups[name].length,name,collapsed[name]));
+    if(!collapsed[name])groups[name].forEach(([id,doc])=>list.appendChild(makeDocItem(id,doc)));
   });
 }
 
@@ -832,6 +922,8 @@ function selectDoc(id){
   document.getElementById('no-doc').style.display='none';
   document.getElementById('doc-view').style.display='flex';
   document.getElementById('doc-title-display').innerText=doc.title||'UNTITLED';
+  document.getElementById('btn-bm').style.display='inline-block';
+  updateBookmarkBtn();
   document.getElementById('btn-edit').style.display=canEdit(doc)?'inline-block':'none';
   document.getElementById('btn-perms').style.display=doc.ownerUID===currentUser.uid?'inline-block':'none';
   document.getElementById('btn-del').style.display=doc.ownerUID===currentUser.uid?'inline-block':'none';
@@ -1451,6 +1543,8 @@ function openNewDoc(){
   sourceMode=false;
   document.getElementById('editor-title-hdr').innerText='NEW FILE';
   document.getElementById('e-title').value='UNTITLED FILE';
+  document.getElementById('e-category').value='';
+  updateCatDatalist();
   document.getElementById('e-tags').value='';
   document.getElementById('e-music').value='';
   document.getElementById('e-visibility').value='private';
@@ -1479,6 +1573,8 @@ function openEditor(){
   sourceMode=false;
   document.getElementById('editor-title-hdr').innerText='EDITING: '+(doc.title||'UNTITLED').toUpperCase();
   document.getElementById('e-title').value=doc.title||'';
+  document.getElementById('e-category').value=doc.category||'';
+  updateCatDatalist();
   document.getElementById('e-tags').value=(doc.tags||[]).join(', ');
   document.getElementById('e-music').value=(doc.pageTracks||[doc.pageMusic||'']).filter(Boolean).join('\n');
   document.getElementById('e-visibility').value=doc.visibility||'private';
@@ -1503,6 +1599,7 @@ function closeEditor(){showScreen('s-dash');}
 function saveDoc(){
   const body=sourceMode?document.getElementById('editor-raw').value:serializeBlocks(editorBlocks);
   const title=document.getElementById('e-title').value.trim()||'UNTITLED';
+  const category=document.getElementById('e-category').value.trim().toUpperCase().slice(0,40);
   const tags=document.getElementById('e-tags').value.split(',').map(t=>t.trim()).filter(Boolean);
   const visibility=document.getElementById('e-visibility').value;
   const lockType=document.getElementById('e-lock').value;
@@ -1513,15 +1610,26 @@ function saveDoc(){
   const viewers=parseList(document.getElementById('e-viewers').value);
   const now=Date.now();
   if(editingDocId){
-    db.ref('docs/'+editingDocId).update({title,body,tags,visibility,lockType,lockPassword,pageTracks,editors,viewers,updatedAt:now}).then(()=>{
+    db.ref('docs/'+editingDocId).update({title,category,body,tags,visibility,lockType,lockPassword,pageTracks,editors,viewers,updatedAt:now}).then(()=>{
       selectedDocId=editingDocId;showScreen('s-dash');
     });
   } else {
     const newRef=db.ref('docs').push();
-    newRef.set({title,body,tags,visibility,lockType,lockPassword,pageTracks,editors,viewers,ownerUID:currentUser.uid,ownerName:userProfile.name,createdAt:now,updatedAt:now}).then(()=>{
+    newRef.set({title,category,body,tags,visibility,lockType,lockPassword,pageTracks,editors,viewers,ownerUID:currentUser.uid,ownerName:userProfile.name,createdAt:now,updatedAt:now}).then(()=>{
       selectedDocId=newRef.key;showScreen('s-dash');
     });
   }
+}
+
+function updateCatDatalist(){
+  const dl=document.getElementById('cat-datalist');
+  if(!dl)return;
+  const cats=new Set();
+  Object.values(allDocs).forEach(d=>{
+    const c=(d.category||'').trim().toUpperCase();
+    if(c)cats.add(c);
+  });
+  dl.innerHTML=Array.from(cats).sort().map(c=>`<option value="${escH(c)}">`).join('');
 }
 
 // Legacy stubs (no longer used but kept for safety)
@@ -1529,15 +1637,27 @@ function togglePreviewMode(){}
 function livePreview(){}
 function insertSnippet(){}
 
+// In-page confirm — GMod's CEF silently no-ops confirm()/alert()/prompt(),
+// so destructive actions must use this modal instead.
+function showConfirm(title,msg,onYes){
+  document.getElementById('cf-title').innerText=title;
+  document.getElementById('cf-msg').innerText=msg;
+  document.getElementById('cf-yes').onclick=()=>{closeModal('confirm-modal');onYes();};
+  openModal('confirm-modal');
+}
+
 function deleteDoc(){
   if(!selectedDocId)return;
   const doc=allDocs[selectedDocId];
   if(!doc||doc.ownerUID!==currentUser.uid)return;
-  if(!confirm('DELETE "'+doc.title+'"? THIS CANNOT BE UNDONE.'))return;
-  db.ref('docs/'+selectedDocId).remove().then(()=>{
-    selectedDocId=null;
-    document.getElementById('doc-view').style.display='none';
-    document.getElementById('no-doc').style.display='flex';
+  showConfirm('DELETE FILE','DELETE "'+(doc.title||'UNTITLED')+'"? THIS CANNOT BE UNDONE.',()=>{
+    const delId=selectedDocId;
+    db.ref('docs/'+delId).remove().then(()=>{
+      if(currentUser)db.ref('users/'+currentUser.uid+'/bookmarks/'+delId).remove();
+      selectedDocId=null;
+      document.getElementById('doc-view').style.display='none';
+      document.getElementById('no-doc').style.display='flex';
+    });
   });
 }
 
